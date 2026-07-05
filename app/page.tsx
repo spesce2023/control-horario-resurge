@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { getEffectiveSchedule } from "@/lib/schedule";
+import { getDailySummary } from "@/lib/attendance/daily";
 import { currentWeekStartISO, weekEndISO, WEEKDAY_LABELS } from "@/lib/week";
 
 export default async function EmployeeHome() {
@@ -17,6 +19,7 @@ export default async function EmployeeHome() {
 
   const weekStart = currentWeekStartISO();
   const { days, totalHours } = await getEffectiveSchedule(supabase, user!.id, weekStart);
+  const daily = await getDailySummary(supabase, user!.id);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-6">
@@ -34,9 +37,51 @@ export default async function EmployeeHome() {
         </form>
       </header>
 
-      <section className="rounded-xl border border-neutral-200 bg-white p-6 text-center text-neutral-500">
-        El marcado de entrada/salida, las marcas del día y el saldo semanal se
-        agregan en el próximo paso.
+      <section className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6 text-center">
+        <Link
+          href="/marcar"
+          className="block w-full rounded-md bg-neutral-900 py-4 text-base font-medium text-white"
+        >
+          {daily.nextType === "in" ? "Marcar entrada" : "Marcar salida"}
+        </Link>
+
+        {daily.hasOpenEntry && (
+          <p className="text-xs text-amber-600">
+            Turno en curso desde las{" "}
+            {new Date(daily.openSince!).toLocaleTimeString("es-UY", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "America/Montevideo",
+            })}
+            .
+          </p>
+        )}
+
+        <div className="text-left">
+          <h2 className="text-sm font-semibold">Marcas de hoy</h2>
+          {daily.entries.length === 0 ? (
+            <p className="mt-2 text-sm text-neutral-500">Todavía no marcaste hoy.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-neutral-100 text-sm">
+              {daily.entries.map((entry) => (
+                <li key={entry.id} className="flex justify-between py-1.5">
+                  <span>{entry.type === "in" ? "Entrada" : "Salida"}</span>
+                  <span className="text-neutral-600">
+                    {new Date(entry.occurredAt).toLocaleTimeString("es-UY", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "America/Montevideo",
+                    })}
+                    {entry.isManual && (
+                      <span className="ml-2 text-xs text-neutral-400">(corregida)</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-sm font-medium">Total hoy: {daily.totalHours}h</p>
+        </div>
       </section>
 
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
