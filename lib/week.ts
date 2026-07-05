@@ -1,4 +1,4 @@
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { fromZonedTime, formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { addDays, endOfDay, format, parseISO, startOfDay, startOfWeek } from "date-fns";
 
 export const TIME_ZONE = "America/Montevideo";
@@ -14,6 +14,25 @@ export const WEEKDAY_LABELS = [
 
 export function todayInTz(reference: Date = new Date()): Date {
   return toZonedTime(reference, TIME_ZONE);
+}
+
+export function currentDateISO(reference: Date = new Date()): string {
+  return format(todayInTz(reference), "yyyy-MM-dd");
+}
+
+/** Fecha calendario (America/Montevideo) de un timestamp ISO. */
+export function localDateISO(isoTimestamp: string): string {
+  return format(toZonedTime(new Date(isoTimestamp), TIME_ZONE), "yyyy-MM-dd");
+}
+
+/** Valor para un <input type="datetime-local"> a partir de un timestamp ISO, en America/Montevideo. */
+export function toLocalInputValue(isoTimestamp: string): string {
+  return formatInTimeZone(new Date(isoTimestamp), TIME_ZONE, "yyyy-MM-dd'T'HH:mm");
+}
+
+/** Hora legible (HH:mm) en America/Montevideo a partir de un timestamp ISO. */
+export function toLocalTime(isoTimestamp: string): string {
+  return formatInTimeZone(new Date(isoTimestamp), TIME_ZONE, "HH:mm");
 }
 
 export function mondayOf(date: Date): Date {
@@ -55,7 +74,18 @@ export function localWeekBoundsUtc(weekStartISO: string): {
   start: Date;
   end: Date;
 } {
-  const start = fromZonedTime(`${weekStartISO}T00:00:00`, TIME_ZONE);
-  const end = fromZonedTime(`${weekEndISO(weekStartISO)}T23:59:59.999`, TIME_ZONE);
+  return localRangeBoundsUtc(weekStartISO, weekEndISO(weekStartISO));
+}
+
+/** Límites de un rango de fechas [fromISO, toISO] en America/Montevideo, como instantes UTC. */
+export function localRangeBoundsUtc(
+  fromISO: string,
+  toISO: string
+): {
+  start: Date;
+  end: Date;
+} {
+  const start = fromZonedTime(`${fromISO}T00:00:00`, TIME_ZONE);
+  const end = fromZonedTime(`${toISO}T23:59:59.999`, TIME_ZONE);
   return { start, end };
 }
