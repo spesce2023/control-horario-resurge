@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 
+// Todo el panel del dueño es dinámico: depende de la sesión y, en el caso
+// del QR, puede tener efectos secundarios (crear el primer token). Nunca
+// debe pre-renderizarse de forma estática en el build.
+export const dynamic = "force-dynamic";
+
 const NAV_ITEMS = [
   { href: "/admin", label: "Inicio" },
   { href: "/admin/empleados", label: "Empleados" },
+  { href: "/admin/qr", label: "QR" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
