@@ -4,7 +4,10 @@ Web para registrar entrada/salida de empleados (hasta ~15-20), calcular horas tr
 
 Stack: **Next.js** (App Router) + **Supabase** (Postgres + Auth) + **Vercel** (hosting).
 
-> Nota de versión: el proyecto usa **Next.js 13.5.11** (no la 14.x) porque la máquina de desarrollo actual tiene Node 18.16.0, una versión por debajo del mínimo que exige Next 14 (18.17). Next 13.5 ya tiene el App Router estable, así que no hay recorte funcional. Si en algún momento se actualiza Node a 18.17+ o 20+, se puede subir a Next 14 sin cambios de arquitectura.
+> Notas de versiones (por compatibilidad con el Node de esta máquina, hoy 18.16.0):
+> - **Next.js 13.5.11** en vez de 14.x (14 exige Node ≥18.17). El App Router ya es estable en 13.5, sin recorte funcional.
+> - **`@supabase/supabase-js` fijado en `2.105.0`** (no la última) y **`@supabase/ssr` en `0.9.0`**. A partir de `@supabase/supabase-js@2.107.0`, el cliente de Realtime dejó de tener alternativa vía el paquete `ws` y pasó a exigir el `WebSocket` nativo del entorno (recién disponible en Node ≥22 sin flags). Como esta app no usa Realtime pero el cliente lo inicializa igual internamente, actualizar a la última versión rompe **todo** llamado a `createClient`/`createServerClient` en Node 18 o 20 con el error `Node.js detected but native WebSocket not found`. Se fijaron ambos paquetes a versiones que todavía dependen de `ws`. Si más adelante se corre exclusivamente en Node 22+ (Vercel lo permite eligiendo esa versión en la configuración del proyecto), se puede volver a la última versión de ambos paquetes.
+> - Si se actualiza Node a 18.17+/20/22, se puede subir Next a 14.x sin cambios de arquitectura.
 
 ## 1. Requisitos previos
 
@@ -60,6 +63,8 @@ El detalle de qué requerimientos están implementados está en la columna **Est
 
 ## 8. Límites conocidos de esta entrega
 
-- El código se desarrolló sin acceso a las credenciales reales de Supabase (por decisión explícita, para no exponer la `service role key`). Se validó que el proyecto compila (`npm run build`) y se agregaron tests unitarios para la lógica de cálculo de horas (`npm test`), pero **el flujo end-to-end (login, marcado por QR, envío de emails) no fue probado en vivo** — hace falta validarlo una vez cargado `.env.local` con el proyecto real, siguiendo los pasos de este README.
+- El proyecto de Supabase real está conectado (`.env.local` con `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` reales) y se verificó en vivo que el login funciona de punta a punta a nivel de transporte (formulario → server action → Supabase Auth → respuesta), pero **todavía no se corrió `supabase/migrations/0001_init.sql` en ese proyecto** (no se compartió la contraseña de la base de datos / connection string, solo las API keys, que no alcanzan para ejecutar SQL). Hasta que se corra esa migración desde el SQL Editor de Supabase (paso 2 de este README), cualquier pantalla que lea/escriba datos (empleados, marcas, horario, QR, ajustes, reportes) va a fallar con "no se encontró la tabla…".
+- Una vez aplicada la migración, hay que correr `node scripts/bootstrap-owner.mjs` (paso 5) para crear la cuenta del dueño, y recién ahí se puede probar el resto del flujo (alta de empleados, marcado por QR, reportes) de punta a punta.
+- `npm run build`, `npm run lint` y `npm test` (29 tests unitarios sobre el cálculo de horas/saldo, generación de usuario y armado del reporte) pasan sin errores.
 - El reporte mensual (RF-16) se generó en formato Excel (.xlsx). El export a PDF queda como mejora futura si hace falta.
 - QR dinámico rotativo (RF-20) queda fuera de alcance, tal como indica el documento de análisis funcional.
