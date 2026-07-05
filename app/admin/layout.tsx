@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 
-const NAV_ITEMS = [{ href: "/admin", label: "Inicio" }];
+const NAV_ITEMS = [
+  { href: "/admin", label: "Inicio" },
+  { href: "/admin/empleados", label: "Empleados" },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
