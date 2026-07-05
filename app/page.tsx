@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { getEffectiveSchedule } from "@/lib/schedule";
 import { getDailySummary } from "@/lib/attendance/daily";
+import { getWeeklyBalance } from "@/lib/attendance/balance";
 import { currentWeekStartISO, weekEndISO, WEEKDAY_LABELS } from "@/lib/week";
 
 export default async function EmployeeHome() {
@@ -17,9 +18,21 @@ export default async function EmployeeHome() {
     .eq("id", user!.id)
     .single();
 
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("weekly_hours_target")
+    .eq("id", user!.id)
+    .single();
+
   const weekStart = currentWeekStartISO();
   const { days, totalHours } = await getEffectiveSchedule(supabase, user!.id, weekStart);
   const daily = await getDailySummary(supabase, user!.id);
+  const balance = await getWeeklyBalance(
+    supabase,
+    user!.id,
+    weekStart,
+    employee?.weekly_hours_target ?? 0
+  );
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-6">
@@ -82,6 +95,34 @@ export default async function EmployeeHome() {
           )}
           <p className="mt-2 text-sm font-medium">Total hoy: {daily.totalHours}h</p>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-sm font-semibold">
+          Saldo semanal — semana del {weekStart} al {weekEndISO(weekStart)}
+        </h2>
+        <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+          <dt className="text-neutral-500">Horas pactadas</dt>
+          <dd className="text-right">{balance.pactadas}h</dd>
+          <dt className="text-neutral-500">Horas trabajadas</dt>
+          <dd className="text-right">{balance.trabajadas}h</dd>
+          {balance.ajustes !== 0 && (
+            <>
+              <dt className="text-neutral-500">Ajustes</dt>
+              <dd className="text-right">
+                {balance.ajustes > 0 ? "+" : ""}
+                {balance.ajustes}h
+              </dd>
+            </>
+          )}
+          <dt className="font-medium">Saldo</dt>
+          <dd
+            className={`text-right font-medium ${balance.saldo < 0 ? "text-red-600" : "text-green-700"}`}
+          >
+            {balance.saldo > 0 ? "+" : ""}
+            {balance.saldo}h
+          </dd>
+        </dl>
       </section>
 
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
