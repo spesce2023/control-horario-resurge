@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditEmployeeForm } from "./edit-employee-form";
@@ -31,6 +32,12 @@ export default async function EditEmployeePage({
         <p className="text-sm text-neutral-500">
           @{profile?.username} · {profile?.email}
         </p>
+        <Link
+          href={`/admin/empleados/${employee.id}/horario`}
+          className="mt-2 inline-block text-sm underline"
+        >
+          Ver / editar horario semanal
+        </Link>
       </div>
 
       <EditEmployeeForm
