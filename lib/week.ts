@@ -51,6 +51,12 @@ export function weekEndISO(weekStartISO: string): string {
   return addDaysISO(weekStartISO, 6);
 }
 
+/** Formatea una fecha "yyyy-MM-dd" como "dd-MM-yyyy" para mostrar al usuario. */
+export function formatDateDisplay(dateISO: string): string {
+  const [year, month, day] = dateISO.split("-");
+  return `${day}-${month}-${year}`;
+}
+
 /**
  * Límites (00:00 a 23:59:59.999) del día calendario en America/Montevideo
  * que corresponde a `reference`, expresados como instantes UTC — para

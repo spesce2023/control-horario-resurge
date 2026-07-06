@@ -4,7 +4,7 @@ import { signOut } from "@/lib/auth/actions";
 import { getEffectiveSchedule } from "@/lib/schedule";
 import { getDailySummary } from "@/lib/attendance/daily";
 import { getWeeklyBalance } from "@/lib/attendance/balance";
-import { currentWeekStartISO, weekEndISO, WEEKDAY_LABELS } from "@/lib/week";
+import { currentWeekStartISO, formatDateDisplay, weekEndISO, WEEKDAY_LABELS } from "@/lib/week";
 
 export default async function EmployeeHome() {
   const supabase = createClient();
@@ -99,7 +99,8 @@ export default async function EmployeeHome() {
 
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
         <h2 className="text-sm font-semibold">
-          Saldo semanal — semana del {weekStart} al {weekEndISO(weekStart)}
+          Saldo semanal — semana del {formatDateDisplay(weekStart)} al{" "}
+          {formatDateDisplay(weekEndISO(weekStart))}
         </h2>
         <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
           <dt className="text-neutral-500">Horas pactadas</dt>
@@ -127,7 +128,8 @@ export default async function EmployeeHome() {
 
       <section className="rounded-xl border border-neutral-200 bg-white p-6">
         <h2 className="text-sm font-semibold">
-          Horario acordado — semana del {weekStart} al {weekEndISO(weekStart)}
+          Horario acordado — semana del {formatDateDisplay(weekStart)} al{" "}
+          {formatDateDisplay(weekEndISO(weekStart))}
         </h2>
         <p className="mt-1 text-xs text-neutral-400">
           Solo informativo: no valida ni alerta desvíos respecto a tus marcas.

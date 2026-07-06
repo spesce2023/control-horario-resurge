@@ -2,7 +2,7 @@ import "server-only";
 import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWeeklyBalance } from "@/lib/attendance/balance";
-import { weekEndISO } from "@/lib/week";
+import { formatDateDisplay, weekEndISO } from "@/lib/week";
 import { uniqueSheetName, weeksOverlappingMonth } from "./monthly-math";
 
 const REPORT_COLUMNS = [
@@ -72,7 +72,7 @@ export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workb
         weekStart,
         employee.weekly_hours_target
       );
-      const weekLabel = `${weekStart} a ${weekEndISO(weekStart)}`;
+      const weekLabel = `${formatDateDisplay(weekStart)} a ${formatDateDisplay(weekEndISO(weekStart))}`;
 
       consolidated.addRow({ employee: employeeName, week: weekLabel, ...balance });
       sheet.addRow({ week: weekLabel, ...balance });

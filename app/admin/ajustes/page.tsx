@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatDateDisplay } from "@/lib/week";
 import { AdjustmentForm } from "./adjustment-form";
 import { DeleteAdjustmentButton } from "./delete-adjustment-button";
 
@@ -42,7 +43,9 @@ export default async function AdjustmentsPage() {
               <div>
                 <p className="font-medium">
                   {nameById.get(a.employee_id) ?? a.employee_id}{" "}
-                  <span className="text-neutral-400">— semana del {a.week_start}</span>
+                  <span className="text-neutral-400">
+                    — semana del {formatDateDisplay(a.week_start)}
+                  </span>
                 </p>
                 <p className="text-neutral-600">{a.concept}</p>
               </div>

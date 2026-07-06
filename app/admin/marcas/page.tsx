@@ -3,6 +3,7 @@ import { getMarksInRange } from "@/lib/attendance/review";
 import {
   currentWeekStartISO,
   weekEndISO,
+  formatDateDisplay,
   localRangeBoundsUtc,
   toLocalTime,
   toLocalInputValue,
@@ -105,7 +106,7 @@ export default async function MarksPage({
               <div>
                 <p className="font-medium">
                   {nameById.get(group.employeeId) ?? group.employeeId}{" "}
-                  <span className="text-neutral-400">— {group.dateISO}</span>
+                  <span className="text-neutral-400">— {formatDateDisplay(group.dateISO)}</span>
                 </p>
                 {group.pendingReview && (
                   <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
