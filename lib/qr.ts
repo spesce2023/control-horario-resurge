@@ -51,8 +51,23 @@ export async function regenerateQrToken(actorId: string | null) {
     .select()
     .single();
 
-  if (error || !created) {
-    throw new Error(error?.message ?? "No se pudo generar el QR.");
+  if (error) {
+    // Carrera: otra llamada concurrente (p. ej. dos visitas casi
+    // simultáneas a /admin/qr) ya insertó el nuevo token activo antes de
+    // que esta terminara — la restricción de "un solo QR activo" rechaza
+    // esta segunda inserción. No es un error real: devolvemos el token
+    // que quedó activo en vez de romper la página.
+    const { data: activeNow } = await admin
+      .from("qr_tokens")
+      .select("*")
+      .eq("active", true)
+      .maybeSingle();
+    if (activeNow) return activeNow;
+    throw new Error(error.message ?? "No se pudo generar el QR.");
+  }
+
+  if (!created) {
+    throw new Error("No se pudo generar el QR.");
   }
 
   await logAudit({
