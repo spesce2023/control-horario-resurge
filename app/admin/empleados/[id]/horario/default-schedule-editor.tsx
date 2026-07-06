@@ -12,7 +12,12 @@ export function DefaultScheduleEditor({
   initialDays: ScheduleDay[];
 }) {
   return (
+    // key={employeeId}: mismo motivo que en WeeklyScheduleEditor — al navegar
+    // de la página de horario de un empleado a la de otro (misma ruta con
+    // distinto id), sin esto el editor conservaría el horario por defecto
+    // del empleado anterior.
     <ScheduleDaysEditor
+      key={employeeId}
       initialDays={initialDays}
       saveLabel="Guardar horario por defecto"
       onSave={(days) => saveDefaultSchedule(employeeId, days)}

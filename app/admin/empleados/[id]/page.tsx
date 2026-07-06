@@ -41,6 +41,7 @@ export default async function EditEmployeePage({
       </div>
 
       <EditEmployeeForm
+        key={employee.id}
         employeeId={employee.id}
         defaultValues={{
           fullName: profile?.full_name ?? "",

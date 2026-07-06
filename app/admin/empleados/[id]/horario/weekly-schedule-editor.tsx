@@ -14,7 +14,13 @@ export function WeeklyScheduleEditor({
   initialDays: ScheduleDay[];
 }) {
   return (
+    // key incluye employeeId + weekStart: fuerza a remontar el editor al
+    // cambiar de semana o de empleado. Sin esto, React reutiliza la
+    // instancia y el estado interno (useState) queda con los días
+    // anteriores, aunque la página ya esté mostrando otra semana/empleado —
+    // guardando por error los datos viejos.
     <ScheduleDaysEditor
+      key={`${employeeId}-${weekStart}`}
       initialDays={initialDays}
       saveLabel="Guardar horario de esta semana"
       onSave={(days) => saveWeeklySchedule(employeeId, weekStart, days)}
