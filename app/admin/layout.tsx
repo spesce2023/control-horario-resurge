@@ -22,7 +22,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <nav className="flex flex-wrap gap-4 text-sm font-medium">
             {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:underline">
+              // prefetch={false}: estas páginas son dinámicas y algunas
+              // (QR) tienen efectos secundarios (crear el token inicial);
+              // no queremos que Next.js las ejecute en segundo plano solo
+              // porque el link está visible en el menú.
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={false}
+                className="hover:underline"
+              >
                 {item.label}
               </Link>
             ))}
