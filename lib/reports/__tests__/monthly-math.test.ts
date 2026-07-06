@@ -1,27 +1,45 @@
+import { addDays, parseISO } from "date-fns";
 import { describe, expect, it } from "vitest";
-import { uniqueSheetName, weeksStartingInMonth } from "../monthly-math";
+import { uniqueSheetName, weeksOverlappingMonth } from "../monthly-math";
 
-describe("weeksStartingInMonth", () => {
-  it("solo incluye semanas cuyo lunes cae dentro del mes", () => {
-    const weeks = weeksStartingInMonth("2026-07");
-    for (const week of weeks) {
-      expect(week.startsWith("2026-07")).toBe(true);
-    }
-  });
-
+describe("weeksOverlappingMonth", () => {
   it("cada semana está separada por 7 días", () => {
-    const weeks = weeksStartingInMonth("2026-07");
+    const weeks = weeksOverlappingMonth("2026-07");
     for (let i = 1; i < weeks.length; i++) {
       const diffDays =
-        (new Date(weeks[i]).getTime() - new Date(weeks[i - 1]).getTime()) / 86_400_000;
+        (parseISO(weeks[i]).getTime() - parseISO(weeks[i - 1]).getTime()) / 86_400_000;
       expect(diffDays).toBe(7);
     }
   });
 
-  it("un mes de 28 días (sin semanas parciales) tiene exactamente 4", () => {
-    // Febrero 2027 no es bisiesto y empieza lunes -> 4 semanas exactas dentro del mes
-    const weeks = weeksStartingInMonth("2027-02");
+  it("un mes que empieza en lunes tiene exactamente 4 semanas, todas dentro del mes", () => {
+    // Febrero 2027 no es bisiesto y empieza lunes -> semanas completas dentro del mes
+    const weeks = weeksOverlappingMonth("2027-02");
     expect(weeks).toHaveLength(4);
+    for (const week of weeks) {
+      expect(week.startsWith("2027-02")).toBe(true);
+    }
+  });
+
+  it("incluye la semana límite aunque su lunes sea del mes anterior", () => {
+    // Si el 1° del mes no cae en lunes, la semana que lo contiene empieza antes
+    const first = parseISO("2026-07-01");
+    const weeks = weeksOverlappingMonth("2026-07");
+    const firstWeekStart = parseISO(weeks[0]);
+    const firstWeekEnd = addDays(firstWeekStart, 6);
+
+    expect(firstWeekStart.getTime()).toBeLessThanOrEqual(first.getTime());
+    expect(firstWeekEnd.getTime()).toBeGreaterThanOrEqual(first.getTime());
+  });
+
+  it("la última semana incluida contiene el último día del mes", () => {
+    const weeks = weeksOverlappingMonth("2026-07");
+    const lastWeekStart = parseISO(weeks[weeks.length - 1]);
+    const lastWeekEnd = addDays(lastWeekStart, 6);
+    const lastOfMonth = parseISO("2026-07-31");
+
+    expect(lastWeekStart.getTime()).toBeLessThanOrEqual(lastOfMonth.getTime());
+    expect(lastWeekEnd.getTime()).toBeGreaterThanOrEqual(lastOfMonth.getTime());
   });
 });
 

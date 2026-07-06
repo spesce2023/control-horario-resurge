@@ -1,11 +1,14 @@
 import { addDays, endOfMonth, format, parseISO, startOfMonth, startOfWeek } from "date-fns";
 
 /**
- * Semanas (lunes) que se asignan al mes YYYY-MM: cada semana pertenece al
- * mes en el que empieza (su lunes), para evitar contar una misma semana en
- * dos reportes distintos cuando cruza fin de mes.
+ * Semanas (lunes) que se incluyen en el reporte del mes YYYY-MM: toda semana
+ * que se superpone con el mes, aunque empiece el lunes anterior (cuando el
+ * 1° no cae en lunes). Esa semana "límite" puede aparecer también en el
+ * reporte del mes anterior — es intencional: cada semana queda etiquetada
+ * con sus fechas exactas, así que no hay ambigüedad, y evita que las horas
+ * de la semana en curso desaparezcan de un reporte pedido a mitad de mes.
  */
-export function weeksStartingInMonth(month: string): string[] {
+export function weeksOverlappingMonth(month: string): string[] {
   const first = startOfMonth(parseISO(`${month}-01`));
   const last = endOfMonth(first);
 
@@ -13,9 +16,7 @@ export function weeksStartingInMonth(month: string): string[] {
   let cursor = startOfWeek(first, { weekStartsOn: 1 });
 
   while (cursor <= last) {
-    if (cursor >= first) {
-      weeks.push(format(cursor, "yyyy-MM-dd"));
-    }
+    weeks.push(format(cursor, "yyyy-MM-dd"));
     cursor = addDays(cursor, 7);
   }
 

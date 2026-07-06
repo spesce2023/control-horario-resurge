@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWeeklyBalance } from "@/lib/attendance/balance";
 import { weekEndISO } from "@/lib/week";
-import { uniqueSheetName, weeksStartingInMonth } from "./monthly-math";
+import { uniqueSheetName, weeksOverlappingMonth } from "./monthly-math";
 
 const REPORT_COLUMNS = [
   { header: "Semana", key: "week", width: 20 },
@@ -27,7 +27,7 @@ function round2(value: number): number {
 /** Reporte mensual (Excel): consolidado + una hoja por empleado (RF-16). */
 export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workbook> {
   const admin = createAdminClient();
-  const weeks = weeksStartingInMonth(month);
+  const weeks = weeksOverlappingMonth(month);
 
   const { data: employeeRows } = await admin
     .from("employees")
