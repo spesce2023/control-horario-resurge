@@ -17,19 +17,19 @@ Leyenda:
 | RF-04 | Detección automática entrada/salida | ✅ | 👤 Marca manual creada (entrada/salida) se reflejó correctamente |
 | RF-05 | Vista de marcas diarias (empleado) | ✅ | 👤 El empleado de prueba vio sus marcas del día correctamente |
 | RF-06 | Vista de saldo semanal (empleado) | ✅ | 👤 Saldo semanal (pactadas/trabajadas/ajuste) correcto para el empleado de prueba |
-| RF-07 | Vista de horario acordado (empleado) | ⏳ | Falta confirmar explícitamente la vista, aunque el horario por defecto ya se cargó al crear los empleados de prueba |
+| RF-07 | Vista de horario acordado (empleado) | ✅ | 👤 El empleado ve el horario actualizado en su home |
 | RF-08 | Alta y edición de empleados | ✅ | 👤 Alta real de empleado con invitación por correo |
-| RF-09 | Configuración de horario semanal | ⏳ | Falta probar el editor de horario semanal en vivo |
+| RF-09 | Configuración de horario semanal | 🔧 | 👤 Se detectó y corrigió un bug real (ver abajo): al navegar entre semanas o empleados, el editor conservaba datos de la semana/empleado anterior. |
 | RF-10 | Panel de marcas por empleado (dueño) | ✅ | 👤 Marcas visibles en /admin/marcas |
-| RF-11 | Alerta de marca pendiente de revisión | ⏳ | Falta un caso con una entrada sin salida de un día pasado para ver la alerta |
+| RF-11 | Alerta de marca pendiente de revisión | ✅ | 👤 Se creó una entrada sin salida de un día pasado y el cartel "Pendiente de revisión" apareció correctamente |
 | RF-12 | Corrección y registro manual de marcas | ✅ | 👤 Alta manual de entrada/salida confirmada |
 | RF-13 | Cálculo de horas trabajadas por día | ✅ | 👤 Total del día correcto con datos reales (además de los 30 tests unitarios) |
 | RF-14 | Cálculo de saldo semanal | ✅ | 👤 Saldo semanal correcto con datos reales (pactadas, trabajadas, ajuste) |
 | RF-15 | Ajuste manual de horas | ✅ | 👤 Ajuste de -2h creado y reflejado en el saldo del empleado |
 | RF-16 | Generación de reporte mensual | ✅ | 👤 Se descargó el reporte, se encontró y corrigió un bug (ver abajo), y se confirmó que ahora muestra correctamente las horas trabajadas y el ajuste de Ana. |
-| RF-17 | Historial de marcas y ajustes | ⏳ | — |
+| RF-17 | Historial de marcas y ajustes | ✅ | 👤 Filtro de fecha ("Desde" 01-07-2026) mostró correctamente una marca fuera de la semana en curso |
 | RF-18 | QR maestro: generar/descargar/regenerar | ✅ | 👤 QR visible y descarga confirmada. Falta probar el botón de regenerar. |
-| RF-19 | Registro de auditoría de correcciones | ⏳ | No se revisó audit_log directamente, pero las acciones que lo escriben (alta de empleado, marca manual, ajuste) sí se ejecutaron |
+| RF-19 | Registro de auditoría de correcciones | ✅ | 🤖 Verificado por script directo: audit_log registra correctamente alta de empleado, marcas manuales y ajustes, con actor y valores anterior/nuevo |
 | RF-21 | Generación automática de usuario | ✅ | 👤 Confirmado al dar de alta un empleado real |
 | RF-22 | Envío de correo de bienvenida | ✅ | 👤 Correo real recibido en la casilla del empleado |
 | RF-23 | Configuración de contraseña por el empleado | ✅ | 👤 Reseteo de contraseña real completado |
@@ -40,6 +40,12 @@ Leyenda:
 Al descargar el reporte de julio 2026, "Trabajadas" y "Ajustes" aparecían en 0 para todas las semanas, aunque el empleado de prueba tenía una marca y un ajuste cargados ese mismo día. Causa: la marca cayó en la semana que empieza el lunes 29 de junio, y la regla original ("cada semana se asigna al mes de su lunes") excluía esa semana del reporte de julio por completo — quedaba "huérfana", ni en junio (nadie pidió ese reporte) ni visible en julio.
 
 Corregido en [`lib/reports/monthly-math.ts`](./lib/reports/monthly-math.ts): ahora el reporte de un mes incluye **todas las semanas que se superponen** con ese mes, no solo las que empiezan en él. La semana límite puede aparecer en los reportes de dos meses consecutivos (con sus fechas exactas en la etiqueta, sin ambigüedad), pero nunca desaparece.
+
+## Bug encontrado durante las pruebas: RF-09 no reiniciaba el editor al cambiar de semana/empleado
+
+El usuario detectó que, al editar el horario de una semana y navegar a otra semana (o a otro empleado), el editor seguía mostrando — y guardando — los datos de la semana/empleado anterior. Causa: el componente que edita los días (`ScheduleDaysEditor`) guarda su estado con `useState` a partir de los datos iniciales, pero React solo toma ese valor la primera vez que el componente se monta; al navegar del lado del cliente entre semanas o empleados, React reutiliza la misma instancia en vez de recrearla, dejando el estado desactualizado. El mismo patrón afectaba al formulario de edición de datos del empleado (inputs no controlados).
+
+Corregido agregando un `key` (semana + empleado, o empleado según el caso) en los tres puntos donde se renderizan estos formularios, forzando a React a reiniciarlos correctamente. Quedan en la base dos filas de `weekly_schedules` de Ana Rodriguez (semanas 2026-06-29 y 2026-06-08) con datos incorrectos producto de este bug — no se borraron sin autorización explícita del usuario.
 
 ## Cuentas de prueba activas
 
