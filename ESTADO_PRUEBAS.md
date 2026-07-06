@@ -26,7 +26,7 @@ Leyenda:
 | RF-13 | Cálculo de horas trabajadas por día | ✅ | 👤 Total del día correcto con datos reales (además de los 30 tests unitarios) |
 | RF-14 | Cálculo de saldo semanal | ✅ | 👤 Saldo semanal correcto con datos reales (pactadas, trabajadas, ajuste) |
 | RF-15 | Ajuste manual de horas | ✅ | 👤 Ajuste de -2h creado y reflejado en el saldo del empleado |
-| RF-16 | Generación de reporte mensual | 🔧 | 👤 Se descargó el reporte pero **no mostraba las horas trabajadas ni los ajustes** — bug real encontrado y corregido (ver abajo). Falta volver a descargar y confirmar. |
+| RF-16 | Generación de reporte mensual | ✅ | 👤 Se descargó el reporte, se encontró y corrigió un bug (ver abajo), y se confirmó que ahora muestra correctamente las horas trabajadas y el ajuste de Ana. |
 | RF-17 | Historial de marcas y ajustes | ⏳ | — |
 | RF-18 | QR maestro: generar/descargar/regenerar | ✅ | 👤 QR visible y descarga confirmada. Falta probar el botón de regenerar. |
 | RF-19 | Registro de auditoría de correcciones | ⏳ | No se revisó audit_log directamente, pero las acciones que lo escriben (alta de empleado, marca manual, ajuste) sí se ejecutaron |
@@ -52,3 +52,7 @@ Creadas directamente (sin invitación por correo, para no gastar el límite de e
 | `lmartinez` | `QaEmpleado2026!` | Lucia Martinez | 20h | Lun-Mié 9 a 17 |
 
 Estas cuentas son solo para pruebas; se recomienda borrarlas (o desactivarlas) antes de empezar a usar la app con empleados reales.
+
+## Ajustes de UI encontrados durante las pruebas
+
+- **Formato de fecha**: las fechas se mostraban en formato ISO (`2026-06-29`). Se corrigió a `dd-MM-yyyy` (`29-06-2026`) en todas las pantallas donde se muestran fechas al usuario (home del empleado, horario semanal, ajustes, panel de marcas, reporte mensual). 👤 Confirmado por el usuario.
