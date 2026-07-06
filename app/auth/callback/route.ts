@@ -9,10 +9,17 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    if (error) {
+      return NextResponse.redirect(`${origin}/login`);
     }
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}/login`);
+  // Sin 'code': el proyecto está usando el flujo implícito de Supabase Auth,
+  // donde los tokens viajan en el fragmento de la URL (#access_token=...),
+  // invisible para el servidor. Redirigimos a `next` sin indicar fragmento
+  // propio: el navegador conserva el fragmento original de la request y el
+  // cliente de Supabase del lado del browser (detectSessionInUrl) lo procesa
+  // ahí para establecer la sesión.
+  return NextResponse.redirect(`${origin}${next}`);
 }

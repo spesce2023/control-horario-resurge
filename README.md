@@ -62,11 +62,31 @@ Cada push a `main` en GitHub dispara un build y deploy automático en Vercel (ya
 
 El detalle de qué requerimientos están implementados está en la columna **Estado** de [`Backlog_Requerimientos_Control_Horario_Cafeteria.xlsx`](./Backlog_Requerimientos_Control_Horario_Cafeteria.xlsx).
 
-## 8. Límites conocidos de esta entrega
+## 8. Notas sobre el correo saliente (invitaciones y recuperación de contraseña)
 
-- El proyecto de Supabase real está conectado y **la migración `0001_init.sql` ya está aplicada** (las 7 tablas existen). La cuenta de Dueño ya fue creada (`node scripts/bootstrap-owner.mjs`, usuario `spesce`, sebas.pesce.m@gmail.com) — falta que definas tu contraseña desde el enlace que te llegó por correo.
-- Verificado en vivo, en el navegador, contra el proyecto real: **login completo** (usuario → resolución de email → Supabase Auth → redirección por rol a `/admin`), incluso con una cuenta de dueño de prueba descartable (creada y borrada después, con tu autorización). También se confirmó por script directo que la invitación por correo (RF-22) efectivamente envía el email cuando el dominio es válido (no funciona con `@example.com`: Supabase lo rechaza como dirección inválida).
-- **No se pudo verificar en vivo, a través del navegador automatizado de esta herramienta, el alta de empleados (ni otras acciones de escritura más complejas que el login)**: el formulario redirige a `/login` en vez de completar la acción, de forma reproducible, incluso después de descartar (uno por uno) causas de código: no es un problema de validación, ni del email de prueba, ni de la versión de `zod`, ni de referencias de Server Action desactualizadas por hot-reload. La lógica de negocio subyacente (generación de usuario, invitación, inserts) se probó por separado con un script y funciona correctamente contra Supabase. Todo indica que es una particularidad de cómo esta herramienta de automatización de navegador interactúa con las Server Actions **experimentales** de Next.js 13.5 (no estabilizadas hasta Next 14) — algo que muy probablemente no se reproduzca en un navegador real. **Recomendación:** probar el alta de un empleado real desde tu propio navegador (`npm run dev` en tu máquina) antes de asumir que hay un bug; si falla ahí también, avisame con el mensaje de error exacto.
-- `npm run build`, `npm run lint` y `npm test` (29 tests unitarios sobre el cálculo de horas/saldo, generación de usuario y armado del reporte) pasan sin errores.
-- El reporte mensual (RF-16) se generó en formato Excel (.xlsx). El export a PDF queda como mejora futura si hace falta.
-- QR dinámico rotativo (RF-20) queda fuera de alcance, tal como indica el documento de análisis funcional.
+- Por defecto, Supabase usa un servicio de correo compartido con un límite muy bajo (**2 correos por hora** con la config actual). Alcanza para dar de alta empleados de a uno, pero no para probar varias invitaciones seguidas.
+- Se evaluó configurar SMTP propio con [Resend](https://resend.com), pero el remitente de prueba `onboarding@resend.dev` no funciona para envío por SMTP relay genérico (Resend lo reserva para uso vía su propia API). Para usar Resend de verdad hace falta **verificar un dominio propio** en Resend y usar un remitente de ese dominio. Por ahora se volvió a desactivar el SMTP custom y se usa el correo por defecto de Supabase.
+- Los enlaces de invitación/recuperación (`/auth/v1/verify?...`) son de **un solo uso**: si algo los abre antes que la persona destinataria (un escáner de seguridad del cliente de correo, una vista previa de link, o incluso un `fetch` de prueba), el enlace queda invalidado y la persona ve "Email link is invalid or has expired" al clickearlo. Evitar "probar" estos enlaces antes de que el usuario final los abra.
+
+## 9. Estado de avance
+
+El detalle de qué requerimientos están implementados está en la columna **Estado** de [`Backlog_Requerimientos_Control_Horario_Cafeteria.xlsx`](./Backlog_Requerimientos_Control_Horario_Cafeteria.xlsx).
+
+## 10. Verificado en vivo contra el proyecto real de Supabase
+
+- **Login** (RF-01/RF-02): usuario → resolución a email → Supabase Auth → redirección por rol a `/admin`, confirmado en un navegador real.
+- **Alta de empleado + invitación por correo** (RF-08, RF-21, RF-22): confirmado desde la app real — se generó el usuario automáticamente y llegó el correo de invitación a la casilla del empleado de prueba.
+- **Definición de contraseña por enlace** (RF-23): se encontró y corrigió un bug real en el camino (ver sección 11) — ya funciona.
+- Migración `0001_init.sql` aplicada y cuenta de Dueño creada (usuario `spesce`, sebas.pesce.m@gmail.com).
+
+El resto de las pantallas (horario, marcas, QR, ajustes, reportes) se construyeron con el mismo patrón que las verificadas arriba y pasan `build`/`lint`/`test`, pero no se probaron una por una en vivo en esta sesión — se recomienda darles una pasada manual antes de usarlas para liquidación real.
+
+## 11. Bugs reales encontrados y corregidos en esta sesión
+
+- **`@supabase/supabase-js` + WebSocket nativo**: versiones recientes (≥2.107) rompen `createClient` en Node <22 porque el cliente de Realtime exige `WebSocket` nativo. Se fijaron `@supabase/supabase-js@2.105.0` y `@supabase/ssr@0.9.0` (última combinación con el fallback `ws`).
+- **Flujo implícito vs PKCE en los enlaces de email**: este proyecto de Supabase entrega los tokens de invitación/recuperación en el fragmento de la URL (`#access_token=...`), no como `?code=`. `/auth/callback` solo sabía manejar `?code=` y mandaba a `/login` perdiendo el fragmento. Corregido en [`app/auth/callback/route.ts`](./app/auth/callback/route.ts) (ahora reenvía a `next` preservando el fragmento) y en [`app/set-password/set-password-form.tsx`](./app/set-password/set-password-form.tsx) (parsea el fragmento a mano y llama a `setSession`, porque `@supabase/ssr` fuerza `flowType: "pkce"` y su detección automática de sesión en la URL no contempla el fragmento implícito).
+- **No correr `npm run build` en esta carpeta mientras haya un `npm run dev` corriendo** (propio o de otra persona): ambos comparten la carpeta `.next`, y un build de producción corrompe la caché de desarrollo, causando 404 en los assets estáticos y que la app quede sin reaccionar a los clics hasta reiniciar el `dev`.
+
+`npm run build`, `npm run lint` y `npm test` (29 tests unitarios sobre el cálculo de horas/saldo, generación de usuario y armado del reporte) pasan sin errores.
+
+El reporte mensual (RF-16) se generó en formato Excel (.xlsx). El export a PDF queda como mejora futura si hace falta. QR dinámico rotativo (RF-20) queda fuera de alcance, tal como indica el documento de análisis funcional.
