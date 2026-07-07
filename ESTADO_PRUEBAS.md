@@ -28,7 +28,7 @@ Leyenda:
 | RF-15 | Ajuste manual de horas | ✅ | 👤 Ajuste de -2h creado y reflejado en el saldo del empleado |
 | RF-16 | Generación de reporte mensual | ✅ | 👤 Se descargó el reporte, se encontró y corrigió un bug (ver abajo), y se confirmó que ahora muestra correctamente las horas trabajadas y el ajuste de Ana. |
 | RF-17 | Historial de marcas y ajustes | ✅ | 👤 Filtro de fecha ("Desde" 01-07-2026) mostró correctamente una marca fuera de la semana en curso |
-| RF-18 | QR maestro: generar/descargar/regenerar | ✅ | 👤 QR visible y descarga confirmada. Falta probar el botón de regenerar. |
+| RF-18 | QR maestro: generar/descargar/regenerar | 🔧 | 👤 Se encontró una condición de carrera real al abrir /admin/qr (ver abajo), corregida de raíz con una función atómica en la base. Falta reconfirmar en vivo tras el último fix. |
 | RF-19 | Registro de auditoría de correcciones | ✅ | 🤖 Verificado por script directo: audit_log registra correctamente alta de empleado, marcas manuales y ajustes, con actor y valores anterior/nuevo |
 | RF-21 | Generación automática de usuario | ✅ | 👤 Confirmado al dar de alta un empleado real |
 | RF-22 | Envío de correo de bienvenida | ✅ | 👤 Correo real recibido en la casilla del empleado |
@@ -44,6 +44,12 @@ Corregido en [`lib/reports/monthly-math.ts`](./lib/reports/monthly-math.ts): aho
 ## Bug encontrado durante las pruebas: RF-09 no reiniciaba el editor al cambiar de semana/empleado
 
 El usuario detectó que, al editar el horario de una semana y navegar a otra semana (o a otro empleado), el editor seguía mostrando — y guardando — los datos de la semana/empleado anterior. Causa: el componente que edita los días (`ScheduleDaysEditor`) guarda su estado con `useState` a partir de los datos iniciales, pero React solo toma ese valor la primera vez que el componente se monta; al navegar del lado del cliente entre semanas o empleados, React reutiliza la misma instancia en vez de recrearla, dejando el estado desactualizado. El mismo patrón afectaba al formulario de edición de datos del empleado (inputs no controlados).
+
+## Bug encontrado durante las pruebas: RF-18 rompía la página con una condición de carrera
+
+Al abrir `/admin/qr`, la página tiraba `Error: duplicate key value violates unique constraint "qr_tokens_one_active"`. Causa real (llevó tres intentos de arreglo dar con ella): `regenerateQrToken` desactivaba el token vigente e insertaba el nuevo en **dos llamadas separadas** a Supabase, dejando un instante real con cero tokens activos en la base. Cualquier otra visita a la página que cayera justo en ese instante (por ejemplo, la precarga en segundo plano que Next.js hace del link "QR" del menú, sumada a la visita real) no encontraba ningún token para usar y rompía.
+
+Corregido moviendo la desactivación + inserción a una única función de Postgres ([`supabase/migrations/0002_qr_regenerate_function.sql`](./supabase/migrations/0002_qr_regenerate_function.sql)) que corre en una sola transacción — ninguna consulta externa puede ya observar ese estado intermedio. También se agregó `prefetch={false}` en los links del menú del panel para reducir ejecuciones innecesarias en segundo plano.
 
 Corregido agregando un `key` (semana + empleado, o empleado según el caso) en los tres puntos donde se renderizan estos formularios, forzando a React a reiniciarlos correctamente. Quedan en la base dos filas de `weekly_schedules` de Ana Rodriguez (semanas 2026-06-29 y 2026-06-08) con datos incorrectos producto de este bug — no se borraron sin autorización explícita del usuario.
 
