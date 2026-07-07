@@ -69,8 +69,12 @@ export async function ensureQrToken() {
 
 /**
  * Invalida el QR actual (si existe) y genera uno nuevo (RF-18, regla 11).
- * Acción explícita del dueño (botón "Regenerar QR"); a diferencia de
- * ensureQrToken, acá sí corresponde desactivar el token vigente.
+ * Acción explícita del dueño (botón "Regenerar QR"). Se ejecuta como una
+ * única función de Postgres (desactivar + insertar en la misma
+ * transacción): así ninguna otra consulta concurrente (por ejemplo
+ * ensureQrToken corriendo por una precarga de página) puede observar un
+ * instante intermedio con cero tokens activos, que era la causa real de
+ * una condición de carrera en RF-18.
  */
 export async function regenerateQrToken(actorId: string | null) {
   const admin = createAdminClient();
@@ -81,30 +85,12 @@ export async function regenerateQrToken(actorId: string | null) {
     .eq("active", true)
     .maybeSingle();
 
-  if (current) {
-    await admin.from("qr_tokens").update({ active: false }).eq("id", current.id);
-  }
+  const { data: created, error } = await admin.rpc("regenerate_qr_token", {
+    p_actor_id: actorId,
+  });
 
-  const { data: created, error } = await admin
-    .from("qr_tokens")
-    .insert({ created_by: actorId })
-    .select()
-    .single();
-
-  if (error) {
-    // Carrera improbable (dos clics simultáneos en "Regenerar"): devolvemos
-    // el token que haya quedado activo en vez de romper la página.
-    const { data: activeNow } = await admin
-      .from("qr_tokens")
-      .select("*")
-      .eq("active", true)
-      .maybeSingle();
-    if (activeNow) return activeNow;
-    throw new Error(error.message ?? "No se pudo generar el QR.");
-  }
-
-  if (!created) {
-    throw new Error("No se pudo generar el QR.");
+  if (error || !created) {
+    throw new Error(error?.message ?? "No se pudo generar el QR.");
   }
 
   await logAudit({

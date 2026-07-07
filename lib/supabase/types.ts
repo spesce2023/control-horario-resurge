@@ -186,6 +186,11 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      regenerate_qr_token: {
+        Args: { p_actor_id: string | null };
+        Returns: Database["public"]["Tables"]["qr_tokens"]["Row"];
+      };
+    };
   };
 }
