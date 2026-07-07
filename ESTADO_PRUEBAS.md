@@ -13,7 +13,7 @@ Leyenda:
 |---|---|---|---|
 | RF-01 | Login de empleado | ✅ | 👤 Login real con usuario/contraseña |
 | RF-02 | Login de dueño | ✅ | 👤 Login real, redirección a /admin por rol |
-| RF-03 | Marcado de entrada/salida (QR) | ⏳ | Falta probar el escaneo con cámara real (necesita un teléfono; no se puede simular desde acá). Se probó el circuito de marcas vía alta manual (RF-12), que comparte la misma lógica de cálculo. |
+| RF-03 | Marcado de entrada/salida (QR) | ⏳ | Se intentó probar desde el celular por la red local, pero los navegadores exigen HTTPS para dar acceso a la cámara (solo `localhost` está exceptuado) — no es un bug de la app, en Vercel (HTTPS de fábrica) no pasa. Se decidió dejar esta prueba para cuando esté desplegado. Mientras tanto, se probó el circuito de marcas vía alta manual (RF-12), que comparte la misma lógica de cálculo. |
 | RF-04 | Detección automática entrada/salida | ✅ | 👤 Marca manual creada (entrada/salida) se reflejó correctamente |
 | RF-05 | Vista de marcas diarias (empleado) | ✅ | 👤 El empleado de prueba vio sus marcas del día correctamente |
 | RF-06 | Vista de saldo semanal (empleado) | ✅ | 👤 Saldo semanal (pactadas/trabajadas/ajuste) correcto para el empleado de prueba |
