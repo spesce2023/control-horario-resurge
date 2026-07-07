@@ -28,7 +28,7 @@ Leyenda:
 | RF-15 | Ajuste manual de horas | ✅ | 👤 Ajuste de -2h creado y reflejado en el saldo del empleado |
 | RF-16 | Generación de reporte mensual | ✅ | 👤 Se descargó el reporte, se encontró y corrigió un bug (ver abajo), y se confirmó que ahora muestra correctamente las horas trabajadas y el ajuste de Ana. |
 | RF-17 | Historial de marcas y ajustes | ✅ | 👤 Filtro de fecha ("Desde" 01-07-2026) mostró correctamente una marca fuera de la semana en curso |
-| RF-18 | QR maestro: generar/descargar/regenerar | 🔧 | 👤 Se encontró una condición de carrera real al abrir /admin/qr (ver abajo), corregida de raíz con una función atómica en la base. Falta reconfirmar en vivo tras el último fix. |
+| RF-18 | QR maestro: generar/descargar/regenerar | ✅ | 👤 Se encontró y corrigió de raíz una condición de carrera real (ver abajo). Confirmado en vivo: la página carga y el botón "Regenerar QR" funciona correctamente. |
 | RF-19 | Registro de auditoría de correcciones | ✅ | 🤖 Verificado por script directo: audit_log registra correctamente alta de empleado, marcas manuales y ajustes, con actor y valores anterior/nuevo |
 | RF-21 | Generación automática de usuario | ✅ | 👤 Confirmado al dar de alta un empleado real |
 | RF-22 | Envío de correo de bienvenida | ✅ | 👤 Correo real recibido en la casilla del empleado |
