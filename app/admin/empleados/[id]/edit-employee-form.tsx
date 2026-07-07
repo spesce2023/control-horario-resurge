@@ -16,6 +16,7 @@ export function EditEmployeeForm({
     mutualista: string;
     emergencyContact: string;
     weeklyHoursTarget: number;
+    hourlyRate: number;
   };
 }) {
   const [error, setError] = useState<string | null>(null);

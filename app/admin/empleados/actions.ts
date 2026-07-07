@@ -16,6 +16,7 @@ const employeeSchema = z.object({
   mutualista: z.string().trim().min(1, "Ingresá la mutualista."),
   emergencyContact: z.string().trim().min(1, "Ingresá el contacto de emergencia."),
   weeklyHoursTarget: z.coerce.number().min(0, "Debe ser un número positivo."),
+  hourlyRate: z.coerce.number().positive("Ingresá el valor hora nominal."),
 });
 
 function inviteRedirectUrl() {
@@ -75,6 +76,7 @@ export async function createEmployee(
     mutualista: data.mutualista,
     emergency_contact: data.emergencyContact,
     weekly_hours_target: data.weeklyHoursTarget,
+    hourly_rate: data.hourlyRate,
     default_schedule: [],
   });
 
@@ -103,6 +105,7 @@ const updateSchema = z.object({
   mutualista: z.string().trim().min(1),
   emergencyContact: z.string().trim().min(1),
   weeklyHoursTarget: z.coerce.number().min(0),
+  hourlyRate: z.coerce.number().positive("Ingresá el valor hora nominal."),
 });
 
 export async function updateEmployee(
@@ -127,6 +130,7 @@ export async function updateEmployee(
       mutualista: data.mutualista,
       emergency_contact: data.emergencyContact,
       weekly_hours_target: data.weeklyHoursTarget,
+      hourly_rate: data.hourlyRate,
       updated_at: new Date().toISOString(),
     })
     .eq("id", data.id);

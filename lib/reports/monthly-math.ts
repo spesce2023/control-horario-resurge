@@ -23,6 +23,61 @@ export function weeksOverlappingMonth(month: string): string[] {
   return weeks;
 }
 
+export function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+export interface Liquidacion {
+  horasNormales: number;
+  horasExtra: number;
+  pagoNormal: number;
+  pagoExtra: number;
+  total: number;
+}
+
+/**
+ * Liquidación del mes (regla de negocio nueva): si las horas trabajadas no
+ * superan las pactadas, se pagan todas a valor simple. El excedente sobre
+ * las pactadas se paga al doble.
+ */
+export function computeLiquidacion(params: {
+  pactadas: number;
+  trabajadas: number;
+  hourlyRate: number;
+}): Liquidacion {
+  const { pactadas, trabajadas, hourlyRate } = params;
+  const horasNormales = Math.min(trabajadas, pactadas);
+  const horasExtra = Math.max(trabajadas - pactadas, 0);
+  const pagoNormal = round2(horasNormales * hourlyRate);
+  const pagoExtra = round2(horasExtra * hourlyRate * 2);
+
+  return {
+    horasNormales: round2(horasNormales),
+    horasExtra: round2(horasExtra),
+    pagoNormal,
+    pagoExtra,
+    total: round2(pagoNormal + pagoExtra),
+  };
+}
+
+interface TimeEntryLike {
+  type: "in" | "out";
+  occurredAt: string;
+}
+
+/** Hora de la primera entrada del día (entries debe venir ordenado ascendente). */
+export function firstInTime(entries: TimeEntryLike[]): string | null {
+  return entries.find((e) => e.type === "in")?.occurredAt ?? null;
+}
+
+/** Hora de la última salida del día (entries debe venir ordenado ascendente). */
+export function lastOutTime(entries: TimeEntryLike[]): string | null {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].type === "out") return entries[i].occurredAt;
+  }
+  return null;
+}
+
 const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;
 
 /** Nombre de hoja de Excel válido (máx. 31 caracteres, sin caracteres especiales) y único dentro del set dado. */

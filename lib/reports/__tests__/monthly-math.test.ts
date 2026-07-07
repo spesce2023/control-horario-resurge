@@ -1,6 +1,12 @@
 import { addDays, parseISO } from "date-fns";
 import { describe, expect, it } from "vitest";
-import { uniqueSheetName, weeksOverlappingMonth } from "../monthly-math";
+import {
+  computeLiquidacion,
+  firstInTime,
+  lastOutTime,
+  uniqueSheetName,
+  weeksOverlappingMonth,
+} from "../monthly-math";
 
 describe("weeksOverlappingMonth", () => {
   it("cada semana está separada por 7 días", () => {
@@ -65,5 +71,54 @@ describe("uniqueSheetName", () => {
   it("usa el fallback si el nombre queda vacío", () => {
     const used = new Set<string>();
     expect(uniqueSheetName(":://", "id-1", used)).toBe("id-1");
+  });
+});
+
+describe("computeLiquidacion", () => {
+  it("paga a valor simple cuando las horas trabajadas no superan las pactadas", () => {
+    const result = computeLiquidacion({ pactadas: 160, trabajadas: 150, hourlyRate: 100 });
+    expect(result.horasNormales).toBe(150);
+    expect(result.horasExtra).toBe(0);
+    expect(result.pagoNormal).toBe(15000);
+    expect(result.pagoExtra).toBe(0);
+    expect(result.total).toBe(15000);
+  });
+
+  it("paga exactamente las pactadas a valor simple cuando coinciden", () => {
+    const result = computeLiquidacion({ pactadas: 160, trabajadas: 160, hourlyRate: 100 });
+    expect(result.horasNormales).toBe(160);
+    expect(result.horasExtra).toBe(0);
+    expect(result.total).toBe(16000);
+  });
+
+  it("paga el excedente al doble cuando las horas trabajadas superan las pactadas", () => {
+    const result = computeLiquidacion({ pactadas: 160, trabajadas: 170, hourlyRate: 100 });
+    expect(result.horasNormales).toBe(160);
+    expect(result.horasExtra).toBe(10);
+    expect(result.pagoNormal).toBe(16000);
+    expect(result.pagoExtra).toBe(2000);
+    expect(result.total).toBe(18000);
+  });
+});
+
+describe("firstInTime / lastOutTime", () => {
+  const entries = [
+    { type: "in" as const, occurredAt: "2026-07-01T09:00:00Z" },
+    { type: "out" as const, occurredAt: "2026-07-01T13:00:00Z" },
+    { type: "in" as const, occurredAt: "2026-07-01T14:00:00Z" },
+    { type: "out" as const, occurredAt: "2026-07-01T18:00:00Z" },
+  ];
+
+  it("toma la primera entrada del día", () => {
+    expect(firstInTime(entries)).toBe("2026-07-01T09:00:00Z");
+  });
+
+  it("toma la última salida del día", () => {
+    expect(lastOutTime(entries)).toBe("2026-07-01T18:00:00Z");
+  });
+
+  it("devuelve null si no hay entrada u salida", () => {
+    expect(firstInTime([])).toBeNull();
+    expect(lastOutTime([])).toBeNull();
   });
 });

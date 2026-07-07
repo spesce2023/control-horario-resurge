@@ -9,6 +9,7 @@ export function EmployeeFormFields({
     mutualista?: string;
     emergencyContact?: string;
     weeklyHoursTarget?: number;
+    hourlyRate?: number;
   };
 }) {
   return (
@@ -53,6 +54,15 @@ export function EmployeeFormFields({
         step="0.5"
         min="0"
         defaultValue={defaultValues?.weeklyHoursTarget}
+        required
+      />
+      <Field
+        label="Valor hora nominal ($)"
+        name="hourlyRate"
+        type="number"
+        step="0.01"
+        min="0.01"
+        defaultValue={defaultValues?.hourlyRate}
         required
       />
     </>

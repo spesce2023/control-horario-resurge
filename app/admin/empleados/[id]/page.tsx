@@ -50,6 +50,7 @@ export default async function EditEmployeePage({
           mutualista: employee.mutualista,
           emergencyContact: employee.emergency_contact,
           weeklyHoursTarget: employee.weekly_hours_target,
+          hourlyRate: employee.hourly_rate,
         }}
       />
 
