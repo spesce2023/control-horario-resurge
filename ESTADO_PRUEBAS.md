@@ -13,7 +13,7 @@ Leyenda:
 |---|---|---|---|
 | RF-01 | Login de empleado | ✅ | 👤 Login real con usuario/contraseña |
 | RF-02 | Login de dueño | ✅ | 👤 Login real, redirección a /admin por rol |
-| RF-03 | Marcado de entrada/salida (QR) | ⏳ | Se intentó probar desde el celular por la red local, pero los navegadores exigen HTTPS para dar acceso a la cámara (solo `localhost` está exceptuado) — no es un bug de la app, en Vercel (HTTPS de fábrica) no pasa. Se decidió dejar esta prueba para cuando esté desplegado. Mientras tanto, se probó el circuito de marcas vía alta manual (RF-12), que comparte la misma lógica de cálculo. |
+| RF-03 | Marcado de entrada/salida (QR) | ✅ | 👤 Confirmado en producción (Vercel, HTTPS): acceso a la cámara desde el celular y marcado real de entrada y salida por escaneo de QR funcionando correctamente. |
 | RF-04 | Detección automática entrada/salida | ✅ | 👤 Marca manual creada (entrada/salida) se reflejó correctamente |
 | RF-05 | Vista de marcas diarias (empleado) | ✅ | 👤 El empleado de prueba vio sus marcas del día correctamente |
 | RF-06 | Vista de saldo semanal (empleado) | ✅ | 👤 Saldo semanal (pactadas/trabajadas/ajuste) correcto para el empleado de prueba |
@@ -68,3 +68,7 @@ Estas cuentas son solo para pruebas; se recomienda borrarlas (o desactivarlas) a
 ## Ajustes de UI encontrados durante las pruebas
 
 - **Formato de fecha**: las fechas se mostraban en formato ISO (`2026-06-29`). Se corrigió a `dd-MM-yyyy` (`29-06-2026`) en todas las pantallas donde se muestran fechas al usuario (home del empleado, horario semanal, ajustes, panel de marcas, reporte mensual). 👤 Confirmado por el usuario.
+
+## Despliegue en producción (Vercel)
+
+Proyecto importado y desplegado en `https://control-horario-resurge.vercel.app`, con las 4 variables de entorno cargadas y el redirect de Supabase (`/auth/callback`) configurado apuntando a esa URL. 👤 Confirmado por el usuario: login, carga de la app y marcado de entrada/salida por cámara (RF-03) funcionando correctamente desde el celular en producción.
