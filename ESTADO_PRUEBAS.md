@@ -18,7 +18,7 @@ Leyenda:
 | RF-05 | Vista de marcas diarias (empleado) | ✅ | 👤 El empleado de prueba vio sus marcas del día correctamente |
 | RF-06 | Vista de saldo semanal (empleado) | ✅ | 👤 Saldo semanal (pactadas/trabajadas/ajuste) correcto para el empleado de prueba |
 | RF-07 | Vista de horario acordado (empleado) | ✅ | 👤 El empleado ve el horario actualizado en su home |
-| RF-08 | Alta y edición de empleados | ⏳ | 👤 Alta/edición ya validada en vivo antes; se agregó el campo obligatorio "Valor hora nominal" (migración `0003_employee_hourly_rate.sql`, ya aplicada a la base real) — falta volver a probar el alta/edición con el campo nuevo |
+| RF-08 | Alta y edición de empleados | ✅ | 👤 Alta/edición ya validada en vivo antes; se confirmó que el campo obligatorio "Valor hora nominal" aparece correctamente en el alta de empleado (migración `0003_employee_hourly_rate.sql` aplicada a la base real) |
 | RF-09 | Configuración de horario semanal | 🔧 | 👤 Se detectó y corrigió un bug real (ver abajo): al navegar entre semanas o empleados, el editor conservaba datos de la semana/empleado anterior. |
 | RF-10 | Panel de marcas por empleado (dueño) | ✅ | 👤 Marcas visibles en /admin/marcas |
 | RF-11 | Alerta de marca pendiente de revisión | ✅ | 👤 Se creó una entrada sin salida de un día pasado y el cartel "Pendiente de revisión" apareció correctamente |
@@ -26,7 +26,7 @@ Leyenda:
 | RF-13 | Cálculo de horas trabajadas por día | ✅ | 👤 Total del día correcto con datos reales (además de los 30 tests unitarios) |
 | RF-14 | Cálculo de saldo semanal | ✅ | 👤 Saldo semanal correcto con datos reales (pactadas, trabajadas, ajuste) |
 | RF-15 | Ajuste manual de horas | ✅ | 👤 Ajuste de -2h creado y reflejado en el saldo del empleado |
-| RF-16 | Generación de reporte mensual | ⏳ | 👤 El reporte semanal/consolidado ya fue validado en vivo antes. Se agregó la liquidación mensual (horas normales a valor simple + excedente al doble, con "horas extra pagadas" explícitas) y un detalle diario (entrada/salida/horas) en la hoja de cada empleado — cubierto por 8 tests unitarios nuevos en [`monthly-math.test.ts`](./lib/reports/__tests__/monthly-math.test.ts), pero falta descargar un reporte real y confirmar visualmente ambas secciones nuevas. |
+| RF-16 | Generación de reporte mensual | ✅ | 👤 El reporte semanal/consolidado ya fue validado en vivo antes. Se agregó la liquidación mensual (horas normales a valor simple + excedente al doble, con "horas extra pagadas" explícitas) y un detalle diario (entrada/salida/horas) en la hoja de cada empleado — cubierto por 8 tests unitarios nuevos en [`monthly-math.test.ts`](./lib/reports/__tests__/monthly-math.test.ts). Usuario confirmó en vivo que el reporte descargado muestra correctamente la liquidación calculada con el valor hora nominal. |
 | RF-17 | Historial de marcas y ajustes | ✅ | 👤 Filtro de fecha ("Desde" 01-07-2026) mostró correctamente una marca fuera de la semana en curso |
 | RF-18 | QR maestro: generar/descargar/regenerar | ✅ | 👤 Se encontró y corrigió de raíz una condición de carrera real (ver abajo). Confirmado en vivo: la página carga y el botón "Regenerar QR" funciona correctamente. |
 | RF-19 | Registro de auditoría de correcciones | ✅ | 🤖 Verificado por script directo: audit_log registra correctamente alta de empleado, marcas manuales y ajustes, con actor y valores anterior/nuevo |
