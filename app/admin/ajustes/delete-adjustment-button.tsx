@@ -20,11 +20,11 @@ export function DeleteAdjustmentButton({ id }: { id: string }) {
             if (result?.error) setError(result.error);
           });
         }}
-        className="text-xs text-red-600 underline disabled:opacity-50"
+        className="text-[11.5px] font-semibold text-danger disabled:opacity-50"
       >
         Eliminar
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-[11px] text-danger">{error}</p>}
     </div>
   );
 }
