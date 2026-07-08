@@ -20,6 +20,7 @@ export function DefaultScheduleEditor({
       key={employeeId}
       initialDays={initialDays}
       saveLabel="Guardar horario por defecto"
+      variant="secondary"
       onSave={(days) => saveDefaultSchedule(employeeId, days)}
     />
   );

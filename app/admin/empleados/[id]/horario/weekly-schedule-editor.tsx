@@ -23,6 +23,7 @@ export function WeeklyScheduleEditor({
       key={`${employeeId}-${weekStart}`}
       initialDays={initialDays}
       saveLabel="Guardar horario de esta semana"
+      variant="primary"
       onSave={(days) => saveWeeklySchedule(employeeId, weekStart, days)}
     />
   );

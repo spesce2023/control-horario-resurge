@@ -1,65 +1,61 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { EmployeesList } from "./employees-list";
 
 export default async function EmployeesPage() {
   const supabase = createClient();
 
   const { data: employees } = await supabase
     .from("employees")
-    .select("*")
+    .select("id, weekly_hours_target, active")
     .order("created_at", { ascending: true });
 
   const ids = (employees ?? []).map((e) => e.id);
   const { data: profiles } = ids.length
-    ? await supabase.from("profiles").select("id, username, full_name, email").in("id", ids)
-    : { data: [] as { id: string; username: string; full_name: string; email: string }[] };
+    ? await supabase.from("profiles").select("id, username, full_name").in("id", ids)
+    : { data: [] as { id: string; username: string; full_name: string }[] };
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
+  const rows = (employees ?? []).map((e) => {
+    const profile = profileById.get(e.id);
+    return {
+      id: e.id,
+      fullName: profile?.full_name ?? "(sin nombre)",
+      username: profile?.username ?? "",
+      weeklyHoursTarget: e.weekly_hours_target,
+      active: e.active,
+    };
+  });
+
+  const activeCount = rows.filter((r) => r.active).length;
+  const inactiveCount = rows.length - activeCount;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Empleados</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-serif text-[19px] font-semibold text-olive">Empleados</h1>
+          <p className="text-[11.5px] text-secondary">
+            {activeCount} activos · {inactiveCount} inactivo{inactiveCount === 1 ? "" : "s"}
+          </p>
+        </div>
         <Link
           href="/admin/empleados/nuevo"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
+          className="hidden rounded-lg bg-sage px-4 py-2.5 text-center text-[12.5px] font-bold text-white sm:inline-block"
         >
           + Nuevo empleado
         </Link>
       </div>
 
-      <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
-        {(employees ?? []).map((employee) => {
-          const profile = profileById.get(employee.id);
-          return (
-            <li key={employee.id}>
-              <Link
-                href={`/admin/empleados/${employee.id}`}
-                className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50"
-              >
-                <div>
-                  <p className="font-medium">
-                    {profile?.full_name ?? "(sin nombre)"}{" "}
-                    <span className="text-neutral-400">@{profile?.username}</span>
-                    {!employee.active && (
-                      <span className="ml-2 rounded-full bg-neutral-200 px-2 py-0.5 text-xs">
-                        Inactivo
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    {profile?.email} · {employee.weekly_hours_target}h/semana
-                  </p>
-                </div>
-                <span className="text-sm underline">Editar</span>
-              </Link>
-            </li>
-          );
-        })}
-        {employees?.length === 0 && (
-          <li className="p-4 text-sm text-neutral-500">Todavía no hay empleados cargados.</li>
-        )}
-      </ul>
+      <Link
+        href="/admin/empleados/nuevo"
+        className="block rounded-lg bg-sage px-4 py-3 text-center text-[13px] font-bold text-white sm:hidden"
+      >
+        + Nuevo empleado
+      </Link>
+
+      <EmployeesList rows={rows} />
     </div>
   );
 }
