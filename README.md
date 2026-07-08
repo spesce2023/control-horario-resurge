@@ -13,7 +13,7 @@ Stack: **Next.js** (App Router) + **Supabase** (Postgres + Auth) + **Vercel** (h
 
 - Node.js 18.17+ (idealmente 20 LTS). Localmente hoy hay Node 18.16.0, que **no alcanza** para correr `npm run dev`/`npm run build` de forma confiable — conviene actualizar Node antes de desarrollar en esta máquina.
 - Un proyecto de Supabase ya creado (según el documento de análisis, ya existe uno vinculado a esta cuenta).
-- El repositorio ya está vinculado a Vercel para despliegue automático en cada push a `main` (según el flujo descripto en la sección 5 del análisis funcional).
+- **El repositorio todavía NO está importado en Vercel.** Es un paso manual, de una sola vez, que hay que hacer desde vercel.com → "Add New… → Project" → elegir este repo de GitHub. Recién ahí queda con despliegue automático en cada push a `main`. Ver sección 6.
 
 ## 2. Configurar Supabase
 
@@ -56,7 +56,14 @@ Esto crea la cuenta de Dueño (rol `owner`) e invita por correo a la dirección 
 
 ## 6. Desplegar
 
-Cada push a `main` en GitHub dispara un build y deploy automático en Vercel (ya configurado). No hace falta ningún paso manual adicional una vez cargadas las variables de entorno en Vercel.
+**Paso único de configuración (todavía no hecho):**
+1. En [vercel.com](https://vercel.com), iniciar sesión y "Add New… → Project".
+2. Elegir el repositorio `control-horario-resurge` de GitHub.
+3. Antes de confirmar el deploy, cargar las 4 variables de entorno (sección 3) en "Environment Variables" — `NEXT_PUBLIC_SITE_URL` con la URL que Vercel asigna (ej. `https://control-horario-resurge.vercel.app`).
+4. Deploy.
+5. En Supabase → Authentication → URL Configuration, agregar `<esa-url>/auth/callback` a "Redirect URLs" (si no, los links de invitación por correo no van a funcionar en producción).
+
+Una vez hecho esto, cada push a `main` en GitHub dispara un build y deploy automático en Vercel — no hace falta ningún paso manual adicional.
 
 ## 7. Estado de avance
 
