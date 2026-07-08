@@ -1,21 +1,32 @@
 export function Leaf({ size = 24, light = false }: { size?: number; light?: boolean }) {
-  const stroke = light ? "#F5F0E4" : "#4F5C3B";
-  const secondaryFill = light ? "#F5F0E4" : "#6E7F52";
-  const secondaryOpacity = light ? 0.9 : 1;
+  const stemColor = light ? "#F5F0E4" : "#5C4E33";
+  const sageColor = light ? "#F5F0E4" : "#6E7F52";
+  const sageOpacity = light ? 0.9 : 1;
+  const width = Math.round(size * 0.62);
 
   return (
-    <svg width={size} height={size} viewBox="0 0 30 30" fill="none" aria-hidden="true">
+    <svg width={width} height={size} viewBox="0 0 21 34" fill="none" aria-hidden="true">
+      {/* tallo curvo */}
       <path
-        d="M15 28 C15 20 15 12 15 4"
-        stroke={stroke}
-        strokeWidth="1.6"
+        d="M10.5 33 C9.3 26.5 8 21 9.6 15 C11 10.2 11.4 7.3 11.4 5.2"
+        stroke={stemColor}
+        strokeWidth="1.4"
         strokeLinecap="round"
+        fill="none"
       />
-      <path d="M15 14 C15 14 8 12 6 6 C13 6 15 14 15 14 Z" fill="#B5652E" />
+      {/* hoja terracota, arriba a la izquierda */}
+      <path d="M11.4 5.2 C9.4 3 6 1.2 2 1 C3.3 4.6 6.6 6.9 11.4 5.2 Z" fill="#B5652E" />
+      {/* hoja salvia, arriba a la derecha */}
       <path
-        d="M15 14 C15 14 22 12 24 6 C17 6 15 14 15 14 Z"
-        fill={secondaryFill}
-        opacity={secondaryOpacity}
+        d="M11.4 5.2 C13.2 2.9 16.5 1 20 1.2 C18.9 4.9 15.4 7.1 11.4 5.2 Z"
+        fill={sageColor}
+        opacity={sageOpacity}
+      />
+      {/* hoja salvia inferior, a la izquierda del tallo */}
+      <path
+        d="M9.7 17.5 C7.6 16 4.6 15 1.3 15.4 C2.6 18.5 5.9 20 9.7 17.5 Z"
+        fill={sageColor}
+        opacity={sageOpacity}
       />
     </svg>
   );
