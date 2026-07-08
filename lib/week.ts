@@ -57,6 +57,14 @@ export function formatDateDisplay(dateISO: string): string {
   return `${day}-${month}-${year}`;
 }
 
+/** Formatea minutos como "Xh Ym" (o solo "Xh" si no hay minutos sueltos). */
+export function formatHoursMinutes(totalMinutes: number): string {
+  const rounded = Math.round(totalMinutes);
+  const hours = Math.floor(rounded / 60);
+  const minutes = rounded % 60;
+  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
+}
+
 /**
  * Límites (00:00 a 23:59:59.999) del día calendario en America/Montevideo
  * que corresponde a `reference`, expresados como instantes UTC — para

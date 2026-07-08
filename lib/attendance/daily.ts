@@ -12,6 +12,7 @@ export interface DailyEntry extends SimpleEntry {
 export interface DailySummary {
   entries: DailyEntry[];
   totalHours: number;
+  totalMinutes: number;
   nextType: "in" | "out";
   hasOpenEntry: boolean;
   openSince: string | null;
@@ -45,6 +46,7 @@ export async function getDailySummary(
   return {
     entries,
     totalHours: Math.round((pairing.totalMinutes / 60) * 100) / 100,
+    totalMinutes: pairing.totalMinutes,
     nextType: pairing.nextType,
     hasOpenEntry: pairing.hasOpenEntry,
     openSince: pairing.openSince,
