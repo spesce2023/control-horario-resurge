@@ -11,6 +11,13 @@ export function computeTotalHours(days: ScheduleDay[]): number {
   return days.reduce((sum, day) => sum + dayHours(day), 0);
 }
 
+/** RF-08: el horario por defecto de un empleado nuevo tiene que sumar exactamente sus horas semanales pactadas. */
+export function scheduleMatchesTarget(days: ScheduleDay[], target: number): boolean {
+  const total = Math.round(computeTotalHours(days) * 100) / 100;
+  const roundedTarget = Math.round(target * 100) / 100;
+  return total === roundedTarget;
+}
+
 export interface EffectiveSchedule {
   days: ScheduleDay[];
   totalHours: number;

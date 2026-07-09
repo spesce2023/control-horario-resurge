@@ -7,6 +7,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateUniqueUsername } from "@/lib/username";
 import { getCurrentUserId } from "@/lib/auth/current-user";
 import { logAudit } from "@/lib/audit";
+import { scheduleMatchesTarget } from "@/lib/schedule";
+
+const scheduleDaySchema = z.object({
+  weekday: z.number().int().min(1).max(7),
+  start: z.string().min(1),
+  end: z.string().min(1),
+});
+
+const defaultScheduleField = z.string().transform((value, ctx) => {
+  try {
+    return z.array(scheduleDaySchema).parse(JSON.parse(value));
+  } catch {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Horario por defecto inválido." });
+    return z.NEVER;
+  }
+});
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(1, "Ingresá el nombre completo."),
@@ -17,6 +33,7 @@ const employeeSchema = z.object({
   emergencyContact: z.string().trim().min(1, "Ingresá el contacto de emergencia."),
   weeklyHoursTarget: z.coerce.number().min(0, "Debe ser un número positivo."),
   hourlyRate: z.coerce.number().positive("Ingresá el valor hora nominal."),
+  defaultSchedule: defaultScheduleField,
 });
 
 function inviteRedirectUrl() {
@@ -32,6 +49,14 @@ export async function createEmployee(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
   const data = parsed.data;
+
+  if (!scheduleMatchesTarget(data.defaultSchedule, data.weeklyHoursTarget)) {
+    return {
+      error:
+        "La suma de horas del horario por defecto no coincide con las horas semanales pactadas.",
+    };
+  }
+
   const admin = createAdminClient();
 
   const username = await generateUniqueUsername(data.fullName, async (candidate) => {
@@ -77,7 +102,7 @@ export async function createEmployee(
     emergency_contact: data.emergencyContact,
     weekly_hours_target: data.weeklyHoursTarget,
     hourly_rate: data.hourlyRate,
-    default_schedule: [],
+    default_schedule: data.defaultSchedule,
   });
 
   if (employeeError) {

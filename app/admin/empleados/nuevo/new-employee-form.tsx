@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createEmployee } from "../actions";
 import { EmployeeFormFields } from "../employee-form-fields";
+import { DefaultScheduleFields } from "./default-schedule-fields";
 
 export function NewEmployeeForm() {
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,20 @@ export function NewEmployeeForm() {
         </p>
       )}
 
-      <EmployeeFormFields />
+      <EmployeeFormFields
+        scheduleExtra={
+          <div className="space-y-1.5">
+            <label className="block text-[10.5px] font-semibold uppercase tracking-wide text-secondary">
+              Horario por defecto <span className="text-danger">*</span>
+            </label>
+            <DefaultScheduleFields />
+            <p className="text-[11px] text-secondary">
+              La suma de horas configurada acá tiene que coincidir exactamente con las horas
+              semanales pactadas.
+            </p>
+          </div>
+        }
+      />
 
       <button
         type="submit"
