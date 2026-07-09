@@ -24,6 +24,16 @@ export const metadata: Metadata = {
     width: "device-width",
     initialScale: 1,
   },
+  // Uso interno, no público: no debe aparecer en buscadores.
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default function RootLayout({
