@@ -2,6 +2,8 @@ import "server-only";
 import ExcelJS from "exceljs";
 import { endOfMonth, parseISO, format as formatDate } from "date-fns";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 import { getWeeklyBalance } from "@/lib/attendance/balance";
 import { getMarksInRange } from "@/lib/attendance/review";
 import { formatDateDisplay, localRangeBoundsUtc, toLocalTime, weekEndISO } from "@/lib/week";
@@ -15,7 +17,7 @@ import {
   type Liquidacion,
 } from "./monthly-math";
 
-const REPORT_COLUMNS = [
+const WEEKLY_COLUMNS = [
   { header: "Semana", key: "week", width: 20 },
   { header: "Pactadas (h)", key: "pactadas", width: 14 },
   { header: "Trabajadas (h)", key: "trabajadas", width: 16 },
@@ -23,7 +25,20 @@ const REPORT_COLUMNS = [
   { header: "Saldo (h)", key: "saldo", width: 12 },
 ];
 
-interface EmployeeTotals {
+const DAILY_COLUMNS = [
+  { header: "Día", key: "day", width: 14 },
+  { header: "Entrada", key: "entrada", width: 12 },
+  { header: "Salida", key: "salida", width: 20 },
+  { header: "Horas trabajadas", key: "horas", width: 18 },
+];
+
+interface EmployeeRow {
+  id: string;
+  weekly_hours_target: number;
+  hourly_rate: number;
+}
+
+interface MonthTotals {
   pactadas: number;
   trabajadas: number;
   ajustes: number;
@@ -39,13 +54,7 @@ function monthBoundsISO(month: string): { startISO: string; endISO: string } {
   };
 }
 
-/** Reporte mensual (Excel): consolidado + una hoja por empleado (RF-16). */
-export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workbook> {
-  const admin = createAdminClient();
-  const weeks = weeksOverlappingMonth(month);
-  const { startISO, endISO } = monthBoundsISO(month);
-  const { start: monthStartUtc, end: monthEndUtc } = localRangeBoundsUtc(startISO, endISO);
-
+async function loadEmployees(admin: SupabaseClient<Database>) {
   const { data: employeeRows } = await admin
     .from("employees")
     .select("id, weekly_hours_target, hourly_rate")
@@ -58,6 +67,101 @@ export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workb
     : { data: [] as { id: string; full_name: string }[] };
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 
+  return { employees, nameById };
+}
+
+/** Totales del mes (pactadas/trabajadas/ajustes/saldo, sumados semana a semana) y liquidación — comunes a ambos reportes. */
+async function computeEmployeeMonthTotals(
+  admin: SupabaseClient<Database>,
+  employee: EmployeeRow,
+  weeks: string[]
+): Promise<MonthTotals> {
+  const totals = { pactadas: 0, trabajadas: 0, ajustes: 0, saldo: 0 };
+
+  for (const weekStart of weeks) {
+    const balance = await getWeeklyBalance(
+      admin,
+      employee.id,
+      weekStart,
+      employee.weekly_hours_target
+    );
+    totals.pactadas += balance.pactadas;
+    totals.trabajadas += balance.trabajadas;
+    totals.ajustes += balance.ajustes;
+    totals.saldo += balance.saldo;
+  }
+
+  const roundedTotals = {
+    pactadas: round2(totals.pactadas),
+    trabajadas: round2(totals.trabajadas),
+    ajustes: round2(totals.ajustes),
+    saldo: round2(totals.saldo),
+  };
+
+  const liquidacion = computeLiquidacion({
+    pactadas: roundedTotals.pactadas,
+    trabajadas: roundedTotals.trabajadas,
+    hourlyRate: employee.hourly_rate,
+  });
+
+  return { ...roundedTotals, liquidacion };
+}
+
+function addLiquidacionSection(sheet: ExcelJS.Worksheet, hourlyRate: number, liquidacion: Liquidacion) {
+  sheet.addRow([]);
+  const liqHeaderRow = sheet.addRow(["Liquidación del mes"]);
+  liqHeaderRow.font = { bold: true };
+  sheet.addRow(["Valor hora nominal ($)", hourlyRate]);
+  sheet.addRow(["Horas normales pagadas (h)", liquidacion.horasNormales]);
+  sheet.addRow(["Horas extra pagadas al doble (h)", liquidacion.horasExtra]);
+  sheet.addRow(["Pago horas normales ($)", liquidacion.pagoNormal]);
+  sheet.addRow(["Pago horas extra ($)", liquidacion.pagoExtra]);
+  const totalLiqRow = sheet.addRow(["Total liquidación ($)", liquidacion.total]);
+  totalLiqRow.font = { bold: true };
+}
+
+function addConsolidatedTotalsBlock(
+  sheet: ExcelJS.Worksheet,
+  employees: EmployeeRow[],
+  nameById: Map<string, string>,
+  totalsByEmployee: Map<string, MonthTotals>
+) {
+  sheet.addRow([]);
+  const header = sheet.addRow([
+    "Totales del mes por empleado",
+    "",
+    "Pactadas (h)",
+    "Trabajadas (h)",
+    "Ajustes (h)",
+    "Saldo (h)",
+    "Horas extra pagadas (h)",
+    "Liquidación total ($)",
+  ]);
+  header.font = { bold: true };
+
+  for (const employee of employees) {
+    const totals = totalsByEmployee.get(employee.id);
+    if (!totals) continue;
+    const row = sheet.addRow([
+      nameById.get(employee.id) ?? employee.id,
+      "Total del mes",
+      totals.pactadas,
+      totals.trabajadas,
+      totals.ajustes,
+      totals.saldo,
+      totals.liquidacion.horasExtra,
+      totals.liquidacion.total,
+    ]);
+    row.font = { bold: true };
+  }
+}
+
+/** Reporte semanal (Excel): consolidado + una hoja por empleado, con detalle por semana y liquidación del mes (RF-16). */
+export async function buildWeeklyMonthlyWorkbook(month: string): Promise<ExcelJS.Workbook> {
+  const admin = createAdminClient();
+  const weeks = weeksOverlappingMonth(month);
+  const { employees, nameById } = await loadEmployees(admin);
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Control Horario Cafetería";
   workbook.created = new Date();
@@ -65,24 +169,20 @@ export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workb
   const consolidated = workbook.addWorksheet("Consolidado");
   consolidated.columns = [
     { header: "Empleado", key: "employee", width: 28 },
-    ...REPORT_COLUMNS,
+    ...WEEKLY_COLUMNS,
     { header: "Horas extra pagadas (h)", key: "horasExtra", width: 20 },
     { header: "Liquidación total ($)", key: "liquidacionTotal", width: 20 },
   ];
   consolidated.getRow(1).font = { bold: true };
 
   const usedSheetNames = new Set<string>(["Consolidado"]);
-  const totalsByEmployee = new Map<string, EmployeeTotals>();
+  const totalsByEmployee = new Map<string, MonthTotals>();
 
   for (const employee of employees) {
     const employeeName = nameById.get(employee.id) ?? employee.id;
-    const sheet = workbook.addWorksheet(
-      uniqueSheetName(employeeName, employee.id, usedSheetNames)
-    );
-    sheet.columns = REPORT_COLUMNS;
+    const sheet = workbook.addWorksheet(uniqueSheetName(employeeName, employee.id, usedSheetNames));
+    sheet.columns = WEEKLY_COLUMNS;
     sheet.getRow(1).font = { bold: true };
-
-    const totals = { pactadas: 0, trabajadas: 0, ajustes: 0, saldo: 0 };
 
     for (const weekStart of weeks) {
       const balance = await getWeeklyBalance(
@@ -95,77 +195,42 @@ export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workb
 
       consolidated.addRow({ employee: employeeName, week: weekLabel, ...balance });
       sheet.addRow({ week: weekLabel, ...balance });
-
-      totals.pactadas += balance.pactadas;
-      totals.trabajadas += balance.trabajadas;
-      totals.ajustes += balance.ajustes;
-      totals.saldo += balance.saldo;
     }
 
-    const roundedTotals = {
-      pactadas: round2(totals.pactadas),
-      trabajadas: round2(totals.trabajadas),
-      ajustes: round2(totals.ajustes),
-      saldo: round2(totals.saldo),
-    };
+    const monthTotals = await computeEmployeeMonthTotals(admin, employee, weeks);
+    totalsByEmployee.set(employee.id, monthTotals);
 
-    const totalRow = sheet.addRow({ week: "Total del mes", ...roundedTotals });
+    const totalRow = sheet.addRow({
+      week: "Total del mes",
+      pactadas: monthTotals.pactadas,
+      trabajadas: monthTotals.trabajadas,
+      ajustes: monthTotals.ajustes,
+      saldo: monthTotals.saldo,
+    });
     totalRow.font = { bold: true };
 
-    // Detalle diario (entrada, salida, horas trabajadas por día calendario).
-    const days = await getMarksInRange(admin, {
-      employeeId: employee.id,
-      fromUtc: monthStartUtc,
-      toUtc: monthEndUtc,
-    });
-    const daysAscending = [...days].sort((a, b) => (a.dateISO < b.dateISO ? -1 : 1));
-
-    sheet.addRow([]);
-    const dailyHeaderRow = sheet.addRow(["Detalle diario"]);
-    dailyHeaderRow.font = { bold: true };
-    const dailyColumnsRow = sheet.addRow(["Día", "Entrada", "Salida", "Horas trabajadas"]);
-    dailyColumnsRow.font = { bold: true };
-
-    for (const day of daysAscending) {
-      const entrada = firstInTime(day.entries);
-      const salida = lastOutTime(day.entries);
-      sheet.addRow([
-        formatDateDisplay(day.dateISO),
-        entrada ? toLocalTime(entrada) : "-",
-        salida ? toLocalTime(salida) : day.pendingReview ? "Pendiente de revisión" : "-",
-        day.totalHours,
-      ]);
-    }
-
-    // Liquidación del mes (pago simple hasta las horas pactadas, doble el excedente).
-    const liquidacion = computeLiquidacion({
-      pactadas: roundedTotals.pactadas,
-      trabajadas: roundedTotals.trabajadas,
-      hourlyRate: employee.hourly_rate,
-    });
-
-    sheet.addRow([]);
-    const liqHeaderRow = sheet.addRow(["Liquidación del mes"]);
-    liqHeaderRow.font = { bold: true };
-    sheet.addRow(["Valor hora nominal ($)", employee.hourly_rate]);
-    sheet.addRow(["Horas normales pagadas (h)", liquidacion.horasNormales]);
-    sheet.addRow(["Horas extra pagadas al doble (h)", liquidacion.horasExtra]);
-    sheet.addRow(["Pago horas normales ($)", liquidacion.pagoNormal]);
-    sheet.addRow(["Pago horas extra ($)", liquidacion.pagoExtra]);
-    const totalLiqRow = sheet.addRow(["Total liquidación ($)", liquidacion.total]);
-    totalLiqRow.font = { bold: true };
-
-    totalsByEmployee.set(employee.id, { ...roundedTotals, liquidacion });
+    addLiquidacionSection(sheet, employee.hourly_rate, monthTotals.liquidacion);
   }
 
-  consolidated.addRow({});
-  const totalsHeaderRow = consolidated.addRow({ employee: "Totales del mes por empleado" });
+  addConsolidatedTotalsBlockKeyed(consolidated, employees, nameById, totalsByEmployee);
+
+  return workbook;
+}
+
+function addConsolidatedTotalsBlockKeyed(
+  sheet: ExcelJS.Worksheet,
+  employees: EmployeeRow[],
+  nameById: Map<string, string>,
+  totalsByEmployee: Map<string, MonthTotals>
+) {
+  sheet.addRow({});
+  const totalsHeaderRow = sheet.addRow({ employee: "Totales del mes por empleado" });
   totalsHeaderRow.font = { bold: true };
 
   for (const employee of employees) {
     const totals = totalsByEmployee.get(employee.id);
     if (!totals) continue;
-    const row = consolidated.addRow({
+    const row = sheet.addRow({
       employee: nameById.get(employee.id) ?? employee.id,
       week: "Total del mes",
       pactadas: totals.pactadas,
@@ -177,6 +242,74 @@ export async function buildMonthlyWorkbook(month: string): Promise<ExcelJS.Workb
     });
     row.font = { bold: true };
   }
+}
+
+/** Reporte diario (Excel): consolidado + una hoja por empleado, con detalle día a día y liquidación del mes (RF-16). */
+export async function buildDailyMonthlyWorkbook(month: string): Promise<ExcelJS.Workbook> {
+  const admin = createAdminClient();
+  const weeks = weeksOverlappingMonth(month);
+  const { startISO, endISO } = monthBoundsISO(month);
+  const { start: monthStartUtc, end: monthEndUtc } = localRangeBoundsUtc(startISO, endISO);
+  const { employees, nameById } = await loadEmployees(admin);
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Control Horario Cafetería";
+  workbook.created = new Date();
+
+  const consolidated = workbook.addWorksheet("Consolidado");
+  consolidated.columns = [
+    { header: "Empleado", key: "employee", width: 28 },
+    ...DAILY_COLUMNS,
+  ];
+  consolidated.getRow(1).font = { bold: true };
+
+  const usedSheetNames = new Set<string>(["Consolidado"]);
+  const totalsByEmployee = new Map<string, MonthTotals>();
+
+  for (const employee of employees) {
+    const employeeName = nameById.get(employee.id) ?? employee.id;
+    const sheet = workbook.addWorksheet(uniqueSheetName(employeeName, employee.id, usedSheetNames));
+    sheet.columns = DAILY_COLUMNS;
+    sheet.getRow(1).font = { bold: true };
+
+    const days = await getMarksInRange(admin, {
+      employeeId: employee.id,
+      fromUtc: monthStartUtc,
+      toUtc: monthEndUtc,
+    });
+    const daysAscending = [...days].sort((a, b) => (a.dateISO < b.dateISO ? -1 : 1));
+
+    for (const day of daysAscending) {
+      const entrada = firstInTime(day.entries);
+      const salida = lastOutTime(day.entries);
+      const salidaLabel = salida
+        ? toLocalTime(salida)
+        : day.pendingReview
+          ? "Pendiente de revisión"
+          : "-";
+
+      consolidated.addRow({
+        employee: employeeName,
+        day: formatDateDisplay(day.dateISO),
+        entrada: entrada ? toLocalTime(entrada) : "-",
+        salida: salidaLabel,
+        horas: day.totalHours,
+      });
+      sheet.addRow({
+        day: formatDateDisplay(day.dateISO),
+        entrada: entrada ? toLocalTime(entrada) : "-",
+        salida: salidaLabel,
+        horas: day.totalHours,
+      });
+    }
+
+    const monthTotals = await computeEmployeeMonthTotals(admin, employee, weeks);
+    totalsByEmployee.set(employee.id, monthTotals);
+
+    addLiquidacionSection(sheet, employee.hourly_rate, monthTotals.liquidacion);
+  }
+
+  addConsolidatedTotalsBlock(consolidated, employees, nameById, totalsByEmployee);
 
   return workbook;
 }
