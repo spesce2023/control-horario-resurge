@@ -18,7 +18,7 @@ Leyenda:
 | RF-05 | Vista de marcas diarias (empleado) | ✅ | 👤 El empleado de prueba vio sus marcas del día correctamente |
 | RF-06 | Vista de saldo semanal (empleado) | ✅ | 👤 Saldo semanal (pactadas/trabajadas/ajuste) correcto para el empleado de prueba |
 | RF-07 | Vista de horario acordado (empleado) | ✅ | 👤 El empleado ve el horario actualizado en su home |
-| RF-08 | Alta y edición de empleados | ✅ | 👤 Alta/edición ya validada en vivo antes; se confirmó que el campo obligatorio "Valor hora nominal" aparece correctamente en el alta de empleado (migración `0003_employee_hourly_rate.sql` aplicada a la base real) |
+| RF-08 | Alta y edición de empleados | ⏳ | 👤 Alta/edición y el campo "Valor hora nominal" ya validados en vivo antes. Se agregó que el alta ahora exige cargar el horario por defecto en el mismo formulario, validando que la suma de horas coincida con las horas semanales pactadas (si no coincide, rechaza el alta) — falta confirmar en vivo este agregado. |
 | RF-09 | Configuración de horario semanal | 🔧 | 👤 Se detectó y corrigió un bug real (ver abajo): al navegar entre semanas o empleados, el editor conservaba datos de la semana/empleado anterior. |
 | RF-10 | Panel de marcas por empleado (dueño) | ✅ | 👤 Marcas visibles en /admin/marcas |
 | RF-11 | Alerta de marca pendiente de revisión | ✅ | 👤 Se creó una entrada sin salida de un día pasado y el cartel "Pendiente de revisión" apareció correctamente |
