@@ -41,6 +41,12 @@ export function NewEmployeeForm() {
         }
       />
 
+      {error && (
+        <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={isPending}

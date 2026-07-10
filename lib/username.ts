@@ -23,22 +23,43 @@ export function baseUsername(fullName: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+interface InsertResult {
+  error: { code?: string; message: string } | null;
+}
+
 /**
- * Genera un username único agregando un dígito incremental ante colisión
- * (RF-21 / regla 13), sin pedir intervención del dueño.
+ * Inserta un perfil probando usernames incrementales (RF-21 / regla 13) y
+ * reintentando ante una violación de unicidad (código 23505 de Postgres).
+ *
+ * A diferencia de "chequear si existe y después insertar" (racy: dos altas
+ * concurrentes pueden calcular el mismo candidato antes de que la primera
+ * termine de insertar — así se rompió esto en producción con dos "Yania
+ * Araujo"), acá el propio insert hace de chequeo atómico: si falla por
+ * choque de username, se reintenta con el siguiente sufijo.
  */
-export async function generateUniqueUsername(
+export async function insertWithUniqueUsername(
   fullName: string,
-  usernameExists: (candidate: string) => Promise<boolean>
-): Promise<string> {
+  insert: (username: string) => Promise<InsertResult>,
+  maxAttempts = 20
+): Promise<{ username: string; error?: string }> {
   const base = baseUsername(fullName);
   let candidate = base;
   let suffix = 2;
 
-  while (await usernameExists(candidate)) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const { error } = await insert(candidate);
+    if (!error) return { username: candidate };
+
+    if (error.code !== "23505") {
+      return { username: candidate, error: error.message };
+    }
+
     candidate = `${base}${suffix}`;
     suffix += 1;
   }
 
-  return candidate;
+  return {
+    username: candidate,
+    error: "No se pudo generar un usuario único después de varios intentos.",
+  };
 }

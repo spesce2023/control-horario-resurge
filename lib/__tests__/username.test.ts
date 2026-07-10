@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseUsername, generateUniqueUsername } from "@/lib/username";
+import { baseUsername, insertWithUniqueUsername } from "@/lib/username";
 
 describe("baseUsername", () => {
   it("combina primera letra del nombre + apellido, en minúsculas", () => {
@@ -19,17 +19,41 @@ describe("baseUsername", () => {
   });
 });
 
-describe("generateUniqueUsername", () => {
-  it("devuelve el username base si no hay colisión", async () => {
-    const result = await generateUniqueUsername("Maria Gomez", async () => false);
-    expect(result).toBe("mgomez");
+describe("insertWithUniqueUsername", () => {
+  it("inserta con el username base si no hay choque", async () => {
+    const attempted: string[] = [];
+    const result = await insertWithUniqueUsername("Maria Gomez", async (username) => {
+      attempted.push(username);
+      return { error: null };
+    });
+    expect(result).toEqual({ username: "mgomez" });
+    expect(attempted).toEqual(["mgomez"]);
   });
 
-  it("agrega un dígito incremental ante colisión", async () => {
-    const taken = new Set(["mgomez", "mgomez2", "mgomez3"]);
-    const result = await generateUniqueUsername("Maria Gomez", async (c) =>
-      taken.has(c)
+  it("reintenta con el siguiente sufijo ante una violación de unicidad (23505)", async () => {
+    const taken = new Set(["mgomez", "mgomez2"]);
+    const result = await insertWithUniqueUsername("Maria Gomez", async (username) => {
+      if (taken.has(username)) {
+        return { error: { code: "23505", message: "duplicate key value violates unique constraint" } };
+      }
+      return { error: null };
+    });
+    expect(result).toEqual({ username: "mgomez3" });
+  });
+
+  it("no reintenta ante un error que no sea de unicidad", async () => {
+    const result = await insertWithUniqueUsername("Maria Gomez", async () => ({
+      error: { code: "23503", message: "foreign key violation" },
+    }));
+    expect(result).toEqual({ username: "mgomez", error: "foreign key violation" });
+  });
+
+  it("se rinde después de maxAttempts si siempre choca", async () => {
+    const result = await insertWithUniqueUsername(
+      "Maria Gomez",
+      async () => ({ error: { code: "23505", message: "duplicate" } }),
+      3
     );
-    expect(result).toBe("mgomez4");
+    expect(result.error).toBeTruthy();
   });
 });

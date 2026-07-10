@@ -85,6 +85,17 @@ export function EditEmployeeForm({
         }
       />
 
+      {error && (
+        <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {saved && !error && (
+        <p className="rounded-md bg-sage-bg px-3 py-2 text-sm text-sage-dark">
+          Cambios guardados.
+        </p>
+      )}
+
       <div className="flex items-center justify-between border-t border-border pt-4">
         <DeactivateButton employeeId={employeeId} active={active} />
         <button

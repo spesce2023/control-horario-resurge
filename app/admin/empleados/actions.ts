@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateUniqueUsername } from "@/lib/username";
+import { baseUsername, insertWithUniqueUsername } from "@/lib/username";
 import { getCurrentUserId } from "@/lib/auth/current-user";
 import { logAudit } from "@/lib/audit";
 import { scheduleMatchesTarget } from "@/lib/schedule";
@@ -59,19 +59,10 @@ export async function createEmployee(
 
   const admin = createAdminClient();
 
-  const username = await generateUniqueUsername(data.fullName, async (candidate) => {
-    const { data: existing } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("username", candidate)
-      .maybeSingle();
-    return !!existing;
-  });
-
   const { data: invited, error: inviteError } =
     await admin.auth.admin.inviteUserByEmail(data.email, {
       redirectTo: inviteRedirectUrl(),
-      data: { username, full_name: data.fullName },
+      data: { username: baseUsername(data.fullName), full_name: data.fullName },
     });
 
   if (inviteError || !invited?.user) {
@@ -82,16 +73,20 @@ export async function createEmployee(
 
   const userId = invited.user.id;
 
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: userId,
-    username,
-    email: data.email,
-    full_name: data.fullName,
-    role: "employee",
-  });
+  const { username, error: profileError } = await insertWithUniqueUsername(
+    data.fullName,
+    async (candidate) =>
+      await admin.from("profiles").insert({
+        id: userId,
+        username: candidate,
+        email: data.email,
+        full_name: data.fullName,
+        role: "employee",
+      })
+  );
 
   if (profileError) {
-    return { error: `Error al crear el perfil: ${profileError.message}` };
+    return { error: `Error al crear el perfil: ${profileError}` };
   }
 
   const { error: employeeError } = await admin.from("employees").insert({
