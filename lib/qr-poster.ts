@@ -92,7 +92,7 @@ export async function buildQrPosterPdf(params: {
 
   // QR chico de acceso a la app, esquina inferior derecha.
   const smallQrSize = 84;
-  const smallQrBuffer = await qrPngBuffer(`${params.appUrl}/login`, smallQrSize);
+  const smallQrBuffer = await qrPngBuffer(params.appUrl, smallQrSize);
   const smallQrImage = await pdf.embedPng(smallQrBuffer);
   const cornerMargin = 46;
   const smallQrX = A4_WIDTH - cornerMargin - smallQrSize;
