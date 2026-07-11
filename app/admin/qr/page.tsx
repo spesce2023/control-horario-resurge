@@ -11,8 +11,9 @@ export default async function QrPage() {
     <div className="mx-auto flex max-w-md flex-col items-center text-center">
       <h1 className="font-serif text-[20px] font-semibold text-olive">QR maestro del local</h1>
       <p className="mb-5 mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-secondary">
-        Imprimí este QR y pegalo en el local. Los empleados lo escanean desde la app para
-        confirmar cada marca de entrada/salida.
+        Descargá el cartel listo para imprimir en A4 y pegalo en el local. Los empleados lo
+        escanean desde la app para confirmar cada marca de entrada/salida, y el QR chico en la
+        esquina los lleva directo a la app si no recuerdan la URL.
       </p>
 
       <div className="flex w-[200px] items-center justify-center rounded-2xl border border-border bg-white p-4">
@@ -30,11 +31,18 @@ export default async function QrPage() {
 
       <div className="flex w-full flex-col items-center gap-2.5">
         <a
-          href={imageDataUrl}
-          download="qr-maestro-cafeteria.png"
+          href="/api/qr/poster"
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-sage px-4 py-2.5 text-[13px] font-bold text-white hover:bg-sage-dark sm:w-[220px]"
         >
-          ⬇ Descargar QR
+          ⬇ Descargar cartel para imprimir (A4)
+        </a>
+
+        <a
+          href={imageDataUrl}
+          download="qr-maestro-cafeteria.png"
+          className="text-[11.5px] font-semibold text-sage-dark underline"
+        >
+          Descargar solo la imagen del QR
         </a>
 
         <RegenerateQrButton />
