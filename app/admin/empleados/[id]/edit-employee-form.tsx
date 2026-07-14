@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateEmployee } from "../actions";
 import { EmployeeFormFields } from "../employee-form-fields";
 import { ResendInviteButton } from "./resend-invite-button";
+import { SendPasswordResetButton } from "./send-password-reset-button";
 import { DeactivateButton } from "./deactivate-button";
 
 export function EditEmployeeForm({
@@ -68,7 +69,10 @@ export function EditEmployeeForm({
                 {welcomeNote}
               </p>
             )}
-            <ResendInviteButton employeeId={employeeId} />
+            <div className="flex flex-wrap gap-2">
+              <ResendInviteButton employeeId={employeeId} />
+              <SendPasswordResetButton employeeId={employeeId} />
+            </div>
           </div>
         }
         scheduleExtra={

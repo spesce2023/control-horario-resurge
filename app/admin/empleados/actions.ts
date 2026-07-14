@@ -241,3 +241,43 @@ export async function resendInvite(employeeId: string) {
 
   return undefined;
 }
+
+/**
+ * Manda el link de recuperación de contraseña (RF-23) a un empleado que ya
+ * completó el alta. A diferencia de resendInvite (pensado para quien
+ * todavía no definió su contraseña por primera vez), esto sirve para quien
+ * ya tiene cuenta activa y se olvidó la contraseña — inviteUserByEmail
+ * rechaza a un usuario ya confirmado, por eso hace falta esta otra función.
+ */
+export async function sendPasswordReset(employeeId: string) {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", employeeId)
+    .single();
+
+  if (!profile) {
+    return { error: "Empleado no encontrado." };
+  }
+
+  const { error } = await admin.auth.resetPasswordForEmail(profile.email, {
+    redirectTo: inviteRedirectUrl(),
+  });
+
+  if (error) {
+    return {
+      error: `No se pudo enviar el link de recuperación: ${error.message}`,
+    };
+  }
+
+  const actorId = await getCurrentUserId();
+  await logAudit({
+    actorId,
+    action: "send_password_reset",
+    entity: "employee",
+    entityId: employeeId,
+  });
+
+  return undefined;
+}
