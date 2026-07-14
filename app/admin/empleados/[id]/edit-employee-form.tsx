@@ -23,6 +23,7 @@ export function EditEmployeeForm({
     phone: string;
     mutualista: string;
     emergencyContact: string;
+    weeklyContractHours: number;
     weeklyHoursTarget: number;
     hourlyRate: number;
   };

@@ -36,18 +36,21 @@ export interface Liquidacion {
 }
 
 /**
- * Liquidación del mes (regla de negocio nueva): si las horas trabajadas no
- * superan las pactadas, se pagan todas a valor simple. El excedente sobre
- * las pactadas se paga al doble.
+ * Liquidación del mes: las horas extra son las que se trabajan por encima
+ * de las horas de CONTRATO del empleado (no de las horas pactadas, que
+ * pueden ser menores o mayores que el contrato y solo se usan para el
+ * saldo semanal). Si las horas trabajadas no superan las de contrato, se
+ * pagan todas a valor simple; el excedente sobre el contrato se paga al
+ * doble.
  */
 export function computeLiquidacion(params: {
-  pactadas: number;
+  contractHours: number;
   trabajadas: number;
   hourlyRate: number;
 }): Liquidacion {
-  const { pactadas, trabajadas, hourlyRate } = params;
-  const horasNormales = Math.min(trabajadas, pactadas);
-  const horasExtra = Math.max(trabajadas - pactadas, 0);
+  const { contractHours, trabajadas, hourlyRate } = params;
+  const horasNormales = Math.min(trabajadas, contractHours);
+  const horasExtra = Math.max(trabajadas - contractHours, 0);
   const pagoNormal = round2(horasNormales * hourlyRate);
   const pagoExtra = round2(horasExtra * hourlyRate * 2);
 

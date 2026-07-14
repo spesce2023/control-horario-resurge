@@ -75,8 +75,8 @@ describe("uniqueSheetName", () => {
 });
 
 describe("computeLiquidacion", () => {
-  it("paga a valor simple cuando las horas trabajadas no superan las pactadas", () => {
-    const result = computeLiquidacion({ pactadas: 160, trabajadas: 150, hourlyRate: 100 });
+  it("paga a valor simple cuando las horas trabajadas no superan las de contrato", () => {
+    const result = computeLiquidacion({ contractHours: 160, trabajadas: 150, hourlyRate: 100 });
     expect(result.horasNormales).toBe(150);
     expect(result.horasExtra).toBe(0);
     expect(result.pagoNormal).toBe(15000);
@@ -84,20 +84,29 @@ describe("computeLiquidacion", () => {
     expect(result.total).toBe(15000);
   });
 
-  it("paga exactamente las pactadas a valor simple cuando coinciden", () => {
-    const result = computeLiquidacion({ pactadas: 160, trabajadas: 160, hourlyRate: 100 });
+  it("paga exactamente las horas de contrato a valor simple cuando coinciden", () => {
+    const result = computeLiquidacion({ contractHours: 160, trabajadas: 160, hourlyRate: 100 });
     expect(result.horasNormales).toBe(160);
     expect(result.horasExtra).toBe(0);
     expect(result.total).toBe(16000);
   });
 
-  it("paga el excedente al doble cuando las horas trabajadas superan las pactadas", () => {
-    const result = computeLiquidacion({ pactadas: 160, trabajadas: 170, hourlyRate: 100 });
+  it("paga el excedente al doble cuando las horas trabajadas superan las de contrato", () => {
+    const result = computeLiquidacion({ contractHours: 160, trabajadas: 170, hourlyRate: 100 });
     expect(result.horasNormales).toBe(160);
     expect(result.horasExtra).toBe(10);
     expect(result.pagoNormal).toBe(16000);
     expect(result.pagoExtra).toBe(2000);
     expect(result.total).toBe(18000);
+  });
+
+  it("el excedente se mide contra el contrato aunque las horas pactadas sean distintas (no es un parámetro de esta función)", () => {
+    // Ej: contrato 160h, pactadas podrían ser 140h o 180h — no afecta este cálculo,
+    // que solo compara trabajadas contra contractHours.
+    const result = computeLiquidacion({ contractHours: 160, trabajadas: 165, hourlyRate: 100 });
+    expect(result.horasNormales).toBe(160);
+    expect(result.horasExtra).toBe(5);
+    expect(result.pagoExtra).toBe(1000);
   });
 });
 

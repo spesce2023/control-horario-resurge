@@ -35,6 +35,7 @@ const DAILY_COLUMNS = [
 interface EmployeeRow {
   id: string;
   weekly_hours_target: number;
+  weekly_contract_hours: number;
   hourly_rate: number;
 }
 
@@ -43,6 +44,7 @@ interface MonthTotals {
   trabajadas: number;
   ajustes: number;
   saldo: number;
+  contractHours: number;
   liquidacion: Liquidacion;
 }
 
@@ -57,7 +59,7 @@ function monthBoundsISO(month: string): { startISO: string; endISO: string } {
 async function loadEmployees(admin: SupabaseClient<Database>) {
   const { data: employeeRows } = await admin
     .from("employees")
-    .select("id, weekly_hours_target, hourly_rate")
+    .select("id, weekly_hours_target, weekly_contract_hours, hourly_rate")
     .order("created_at", { ascending: true });
   const employees = employeeRows ?? [];
 
@@ -98,20 +100,31 @@ async function computeEmployeeMonthTotals(
     saldo: round2(totals.saldo),
   };
 
+  // Las horas de contrato son fijas por semana (no dependen de marcas ni
+  // ajustes): se suman por la misma cantidad de semanas que pactadas, para
+  // que ambos totales cubran exactamente el mismo período del reporte.
+  const contractHours = round2(employee.weekly_contract_hours * weeks.length);
+
   const liquidacion = computeLiquidacion({
-    pactadas: roundedTotals.pactadas,
+    contractHours,
     trabajadas: roundedTotals.trabajadas,
     hourlyRate: employee.hourly_rate,
   });
 
-  return { ...roundedTotals, liquidacion };
+  return { ...roundedTotals, contractHours, liquidacion };
 }
 
-function addLiquidacionSection(sheet: ExcelJS.Worksheet, hourlyRate: number, liquidacion: Liquidacion) {
+function addLiquidacionSection(
+  sheet: ExcelJS.Worksheet,
+  hourlyRate: number,
+  contractHours: number,
+  liquidacion: Liquidacion
+) {
   sheet.addRow([]);
   const liqHeaderRow = sheet.addRow(["Liquidación del mes"]);
   liqHeaderRow.font = { bold: true };
   sheet.addRow(["Valor hora nominal ($)", hourlyRate]);
+  sheet.addRow(["Horas de contrato del mes (h)", contractHours]);
   sheet.addRow(["Horas normales pagadas (h)", liquidacion.horasNormales]);
   sheet.addRow(["Horas extra pagadas al doble (h)", liquidacion.horasExtra]);
   sheet.addRow(["Pago horas normales ($)", liquidacion.pagoNormal]);
@@ -134,6 +147,7 @@ function addConsolidatedTotalsBlock(
     "Trabajadas (h)",
     "Ajustes (h)",
     "Saldo (h)",
+    "Horas contrato (h)",
     "Horas extra pagadas (h)",
     "Liquidación total ($)",
   ]);
@@ -149,6 +163,7 @@ function addConsolidatedTotalsBlock(
       totals.trabajadas,
       totals.ajustes,
       totals.saldo,
+      totals.contractHours,
       totals.liquidacion.horasExtra,
       totals.liquidacion.total,
     ]);
@@ -170,6 +185,7 @@ export async function buildWeeklyMonthlyWorkbook(month: string): Promise<ExcelJS
   consolidated.columns = [
     { header: "Empleado", key: "employee", width: 28 },
     ...WEEKLY_COLUMNS,
+    { header: "Horas contrato (h)", key: "contractHours", width: 18 },
     { header: "Horas extra pagadas (h)", key: "horasExtra", width: 20 },
     { header: "Liquidación total ($)", key: "liquidacionTotal", width: 20 },
   ];
@@ -209,7 +225,12 @@ export async function buildWeeklyMonthlyWorkbook(month: string): Promise<ExcelJS
     });
     totalRow.font = { bold: true };
 
-    addLiquidacionSection(sheet, employee.hourly_rate, monthTotals.liquidacion);
+    addLiquidacionSection(
+      sheet,
+      employee.hourly_rate,
+      monthTotals.contractHours,
+      monthTotals.liquidacion
+    );
   }
 
   addConsolidatedTotalsBlockKeyed(consolidated, employees, nameById, totalsByEmployee);
@@ -237,6 +258,7 @@ function addConsolidatedTotalsBlockKeyed(
       trabajadas: totals.trabajadas,
       ajustes: totals.ajustes,
       saldo: totals.saldo,
+      contractHours: totals.contractHours,
       horasExtra: totals.liquidacion.horasExtra,
       liquidacionTotal: totals.liquidacion.total,
     });
@@ -306,7 +328,12 @@ export async function buildDailyMonthlyWorkbook(month: string): Promise<ExcelJS.
     const monthTotals = await computeEmployeeMonthTotals(admin, employee, weeks);
     totalsByEmployee.set(employee.id, monthTotals);
 
-    addLiquidacionSection(sheet, employee.hourly_rate, monthTotals.liquidacion);
+    addLiquidacionSection(
+      sheet,
+      employee.hourly_rate,
+      monthTotals.contractHours,
+      monthTotals.liquidacion
+    );
   }
 
   addConsolidatedTotalsBlock(consolidated, employees, nameById, totalsByEmployee);

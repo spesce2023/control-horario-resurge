@@ -42,6 +42,7 @@ export interface Database {
           mutualista: string;
           emergency_contact: string;
           weekly_hours_target: number;
+          weekly_contract_hours: number;
           hourly_rate: number;
           default_schedule: ScheduleDay[];
           active: boolean;
@@ -55,6 +56,7 @@ export interface Database {
           mutualista: string;
           emergency_contact: string;
           weekly_hours_target?: number;
+          weekly_contract_hours?: number;
           hourly_rate?: number;
           default_schedule?: ScheduleDay[];
           active?: boolean;

@@ -11,6 +11,7 @@ export function EmployeeFormFields({
     phone?: string;
     mutualista?: string;
     emergencyContact?: string;
+    weeklyContractHours?: number;
     weeklyHoursTarget?: number;
     hourlyRate?: number;
   };
@@ -70,6 +71,15 @@ export function EmployeeFormFields({
       <Section title="Horas y horario">
         <FieldRow>
           <Field
+            label="Horas semanales de contrato"
+            name="weeklyContractHours"
+            type="number"
+            step="0.5"
+            min="0"
+            defaultValue={defaultValues?.weeklyContractHours}
+            required
+          />
+          <Field
             label="Horas semanales pactadas"
             name="weeklyHoursTarget"
             type="number"
@@ -78,6 +88,8 @@ export function EmployeeFormFields({
             defaultValue={defaultValues?.weeklyHoursTarget}
             required
           />
+        </FieldRow>
+        <FieldRow cols={1}>
           <Field
             label="Valor hora nominal ($)"
             name="hourlyRate"

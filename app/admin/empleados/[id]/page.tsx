@@ -90,6 +90,7 @@ export default async function EditEmployeePage({
           phone: employee.phone,
           mutualista: employee.mutualista,
           emergencyContact: employee.emergency_contact,
+          weeklyContractHours: employee.weekly_contract_hours,
           weeklyHoursTarget: employee.weekly_hours_target,
           hourlyRate: employee.hourly_rate,
         }}
