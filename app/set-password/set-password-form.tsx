@@ -18,17 +18,19 @@ export function SetPasswordForm() {
 
   useEffect(() => {
     async function init() {
-      const { data: existing } = await supabase.auth.getSession();
-      if (existing.session) {
-        setSessionState("ready");
-        return;
-      }
-
       // El cliente de @supabase/ssr fuerza flowType "pkce" y por eso su
       // detección automática de sesión en la URL solo busca "?code=". Este
       // proyecto de Supabase usa el flujo implícito para los enlaces de
       // invitación/recuperación, con los tokens en el fragmento
       // (#access_token=...&refresh_token=...), así que lo parseamos a mano.
+      //
+      // Importante: este chequeo va ANTES de mirar si ya hay una sesión
+      // activa. Si alguien abre un link de invitación/recuperación en un
+      // navegador donde ya había otra cuenta logueada, el token del link
+      // tiene que pisar esa sesión vieja — si no, esta pantalla quedaba
+      // "lista" con la sesión equivocada y una nueva contraseña ahí
+      // terminaba aplicándose a la cuenta que ya estaba logueada, no a la
+      // dueña del link.
       const hash = window.location.hash.startsWith("#")
         ? window.location.hash.slice(1)
         : window.location.hash;
@@ -46,6 +48,12 @@ export function SetPasswordForm() {
           setSessionState("ready");
           return;
         }
+      }
+
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing.session) {
+        setSessionState("ready");
+        return;
       }
 
       setSessionState("missing");
