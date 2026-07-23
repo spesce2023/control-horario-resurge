@@ -49,4 +49,15 @@ describe("pairEntries", () => {
     ]);
     expect(result.totalMinutes).toBe(480);
   });
+
+  it("descarta los segundos: el total coincide con la resta de las horas mostradas (HH:mm)", () => {
+    // Caso real reportado: entrada 07:51:05, salida 16:01:43 (hora Montevideo,
+    // UTC-3). Sin truncar da 8.18h; la resta de las horas que ve el usuario
+    // (16:01 − 07:51 = 8h10m) tiene que dar 8.17h → 490 minutos exactos.
+    const result = pairEntries([
+      { type: "in", occurredAt: "2026-07-21T10:51:05.291Z" },
+      { type: "out", occurredAt: "2026-07-21T19:01:43.812Z" },
+    ]);
+    expect(result.totalMinutes).toBe(490);
+  });
 });
